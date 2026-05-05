@@ -76,32 +76,16 @@
         /* --- Syllabus Page --- */
         #syllabus-page{padding:0!important;overflow:hidden!important;max-width:500px!important}.sv3-hero{padding:22px 20px 18px;color:#fff;text-align:center;position:relative}.sv3-back{position:absolute;top:14px;left:14px;background:rgba(255,255,255,.2);border:none;color:#fff;padding:6px 13px;border-radius:20px;font-size:13px;cursor:pointer;font-family:'Noto Sans Bengali',sans-serif;font-weight:600}.sv3-back:hover{background:rgba(255,255,255,.32)}.sv3-hero h2{color:#fff!important;font-size:19px;margin:0 0 4px}.sv3-hero p{color:rgba(255,255,255,.82)!important;font-size:13px;margin:0}.sv3-mark-badge{display:inline-block;margin-top:12px;background:rgba(255,255,255,.22);border:2px solid rgba(255,255,255,.4);color:#fff;padding:6px 20px;border-radius:30px;font-size:15px;font-weight:800;letter-spacing:.5px}.sv3-q-section{padding:16px 16px 12px;background:#f9fafb;border-bottom:1px solid #e5e7eb}.sv3-q-label{font-size:13px;font-weight:700;color:#374151;margin-bottom:10px;display:block}.sv3-chips{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:10px}.sv3-chip{padding:6px 14px;border-radius:20px;border:2px solid #e5e7eb;background:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:'Noto Sans Bengali',sans-serif;color:#374151;transition:all .18s}.sv3-chip:hover{border-color:#6366f1;color:#4f46e5}.sv3-chip.sv3-sel{color:#fff;border-color:transparent}.sv3-q-input{flex:1;padding:11px;border:2px solid #e5e7eb;border-radius:10px;font-size:16px;font-weight:700;font-family:'Noto Sans Bengali',sans-serif;text-align:center;transition:border-color .2s;box-sizing:border-box}.sv3-q-input:focus{outline:0;border-color:#4f46e5}.sv3-q-input.sv3-err{border-color:#dc2626;background:#fff5f5}.sv3-hint{text-align:center;font-size:12px;font-weight:600;color:#16a34a;margin-top:8px}.sv3-hint.sv3-bad{color:#dc2626}.sv3-start-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:14px;border:none;border-radius:12px;font-size:16px;font-weight:800;color:#fff;cursor:pointer;font-family:'Noto Sans Bengali',sans-serif;transition:transform .2s,box-shadow .2s;margin-top:12px}.sv3-start-btn:hover{transform:translateY(-2px);box-shadow:0 8px 22px rgba(0,0,0,.2)}.sv3-topics-wrap{padding:14px 15px 20px;max-height:42vh;overflow-y:auto}.sv3-topics-wrap::-webkit-scrollbar{width:4px}.sv3-topics-wrap::-webkit-scrollbar-thumb{background:#c7d2fe;border-radius:4px}.sv3-section-title{font-size:13px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.8px;margin:0 0 12px;display:flex;align-items:center;gap:8px}.sv3-section-title::after{content:'';flex:1;height:1px;background:#e5e7eb}.sv3-topic-item{display:flex;align-items:flex-start;gap:10px;padding:9px 12px;border-radius:10px;margin-bottom:6px;background:#f9fafb;border:1px solid #f3f4f6;transition:background .15s}.sv3-topic-item:hover{background:#f0f9ff}.sv3-topic-num{font-size:11px;font-weight:800;color:#fff;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}.sv3-topic-text{font-size:13px;color:#374151;line-height:1.55;flex:1}@media (max-width:480px){.sv3-topics-wrap{max-height:36vh}.sv3-hero h2{font-size:17px}}
     </style>
+<!-- OneSignal-এর অফিসিয়াল কোড -->
 <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
-    <!-- এই অংশটি PWA এবং OneSignal এর জন্য Service Worker রেজিস্টার করবে -->
-    <script>
-        // প্রথমে OneSignal এর Service Worker চালু করি
-        window.OneSignal = window.OneSignal || [];
-        OneSignal.push(function() {
-            OneSignal.init({
-                appId: "ae1036c8-0165-49c7-bb88-f3f273b6812b",
-            });
-        });
-
-        // এরপর আমাদের নিজস্ব Service Worker (`sw.js`) রেজিস্টার করি
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js')
-                    .then(registration => {
-                        console.log('Custom SW registered successfully:', registration.scope);
-                    })
-                    .catch(err => {
-                        console.error('Custom SW registration failed:', err);
-                    });
-            });
-        }
-    </script>
-</body>
-</html>
+<script>
+  window.OneSignalDeferred = window.OneSignalDeferred || [];
+  OneSignalDeferred.push(function(OneSignal) {
+    OneSignal.init({
+      appId: "ae1036c8-0165-49c7-bb88-f3f273b6812b",
+    });
+  });
+</script>
 </head>
 <body>
     <!-- Main Modal Container -->
