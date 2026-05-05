@@ -4,7 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BPSC পরীক্ষার প্রস্তুতি</title>
+	<link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#4f46e5">
     <link rel="icon" href="/icons/icon-192x192.png">
+
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -815,6 +818,34 @@
           // এই দুটি লাইন যোগ করা খুবই গুরুত্বপূর্ণ
           serviceWorkerPath: "OneSignalSDK.sw.js",
           serviceWorkerParam: { scope: '/push/onesignal/' }
+        });
+      });
+    </script>
+	 <!-- PWA এবং OneSignal এর জন্য আলাদা স্ক্রিপ্ট ব্লক -->
+    <script>
+        // PWA এর জন্য Service Worker রেজিস্টার করা
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js')
+                .then(reg => console.log('✅ PWA Service Worker রেজিস্টার হয়েছে।'))
+                .catch(err => console.error('❌ PWA Service Worker রেজিস্ট্রেশন ব্যর্থ হয়েছে:', err));
+        }
+    </script>
+    
+    <!-- OneSignal এর জন্য স্ক্রিপ্ট -->
+    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+    <script>
+      window.OneSignalDeferred = window.OneSignalDeferred || [];
+      OneSignalDeferred.push(function(OneSignal) {
+        OneSignal.init({
+          appId: "ae1036c8-0165-49c7-bb88-f3f273b6812b",
+        }).then(function() {
+            // ব্যবহারকারী লগইন করা থাকলে তার ফোন নম্বরকে External User ID হিসেবে সেট করি
+            const user = JSON.parse(localStorage.getItem('currentUser'));
+            if (user && user.phone) {
+                OneSignal.login(user.phone);
+                // ব্যবহারকারীর পারমিশন স্ট্যাটাস ট্যাগ হিসেবে সেট করি
+                OneSignal.User.addTag("permission", user.exam_permission ? "Yes" : "No");
+            }
         });
       });
     </script>
