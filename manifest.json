@@ -1,0 +1,28 @@
+{
+  "name": "BPSC পরীক্ষার প্রস্তুতি",
+  "short_name": "BPSC প্রস্তুতি",
+  "description": "বাংলাদেশের সেরা নার্স ও মিডওয়াইফ পরীক্ষা প্রস্তুতি প্ল্যাটফর্ম।",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f0f2f5",
+  "theme_color": "#4f46e5",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icons/icon-192x192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    },
+    {
+      "src": "/icons/maskable-icon-512x512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "maskable"
+    }
+  ]
+}
