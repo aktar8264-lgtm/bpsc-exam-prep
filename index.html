@@ -1282,5 +1282,99 @@
 
 })();
 </script>
+<!-- ======================================================== -->
+<!-- ব্লক ৩: ১০০% গ্যারান্টেড PWA অ্যাপ ইনস্টল বাটন (Direct Install) -->
+<!-- ======================================================== -->
+<script>
+(function() {
+    'use strict';
+
+    // ১. ব্রাউজারের ইনস্টল প্রম্পট সেভ করার ভেরিয়েবল
+    window.deferredPrompt = null;
+
+    // ব্রাউজার যখন ইনস্টল করার জন্য রেডি হবে
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault(); // ব্রাউজারের ডিফল্ট ব্যানার অফ করা
+        window.deferredPrompt = e; // ইভেন্টটি সেভ করে রাখা
+        console.log("✅ ব্রাউজার সরাসরি ইনস্টলের জন্য প্রস্তুত!");
+    });
+
+    // অ্যাপ ইনস্টল হয়ে গেলে বাটনটি গায়েব করে দেওয়া
+    window.addEventListener('appinstalled', () => {
+        console.log('✅ অ্যাপ ইনস্টল সফল হয়েছে!');
+        window.deferredPrompt = null;
+        const fab = document.getElementById('universal-pwa-fab');
+        if(fab) fab.style.display = 'none';
+    });
+
+    // ২. ভাসমান বাটনের স্টাইল
+    const style = document.createElement('style');
+    style.innerHTML = `
+        #universal-pwa-fab {
+            position: fixed;
+            bottom: 25px;
+            right: 25px;
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 50px;
+            box-shadow: 0 8px 20px rgba(16, 185, 129, 0.4);
+            font-family: 'Noto Sans Bengali', sans-serif;
+            font-size: 14px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            z-index: 999999;
+            border: 2px solid #ffffff;
+        }
+        .fab-icon { font-size: 18px; animation: bounce-icon 2s infinite; }
+        @keyframes bounce-icon {
+            0%, 20%, 50%, 80%, 100% {transform: translateY(0);}
+            40% {transform: translateY(-4px);}
+            60% {transform: translateY(-2px);}
+        }
+        @media (max-width: 600px) {
+            #universal-pwa-fab {
+                left: 50%;
+                right: auto;
+                transform: translateX(-50%);
+                bottom: 20px;
+                width: max-content;
+            }
+        }
+    `;
+    document.head.appendChild(style);
+
+    // ৩. ভাসমান বাটন তৈরি করে বডিতে যুক্ত করা
+    const fabBtn = document.createElement('div');
+    fabBtn.id = 'universal-pwa-fab';
+    fabBtn.innerHTML = `<span class="fab-icon">📱</span> অ্যাপ ইনস্টল করুন`;
+    document.body.appendChild(fabBtn);
+
+    // ৪. বাটনে ক্লিক করলে সরাসরি ইনস্টল ট্রিগার করা
+    fabBtn.addEventListener('click', async () => {
+        if (window.deferredPrompt) {
+            // ব্রাউজার অনুমতি দিলে সরাসরি ইনস্টল পপআপ আসবে
+            window.deferredPrompt.prompt();
+            const { outcome } = await window.deferredPrompt.userChoice;
+            if (outcome === 'accepted') {
+                fabBtn.style.display = 'none';
+            }
+            window.deferredPrompt = null;
+        } else {
+            // ব্রাউজার অনুমতি না দিলে শুধু এই মেসেজটি দেখাবে
+            alert("সরাসরি ইনস্টল করা যাচ্ছে না। সম্ভবত অ্যাপটি আগেই ইনস্টল করা আছে অথবা আপনার ব্রাউজার এটি সাপোর্ট করছে না। দয়া করে ব্রাউজারের মেনু থেকে 'Add to Home screen' করুন।");
+        }
+    });
+
+    // ৫. যদি অ্যাপ ইতিমধ্যেই ইনস্টল করা থাকে এবং অ্যাপ থেকে ওপেন হয়, তবে বাটন হাইড করা
+    if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
+        fabBtn.style.display = 'none';
+    }
+
+})();
+</script>
 </body>
 </html>
