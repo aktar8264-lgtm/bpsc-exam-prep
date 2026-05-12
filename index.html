@@ -1438,5 +1438,786 @@
 
 })();
 </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+<script>
+(function() {
+'use strict';
+
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzYWWEzaeYWsLvz3seGxLLUILDASQ2Rli1r5UIqNITq186WbiFQnbSlRS2DOKBbeMs91A/exec";
+const ADMIN_WHATSAPP = "https://wa.me/8801750733269";
+const PAYMENT_NUMBER = "01750733269";
+const BADGE_INFO = { Pioneer: { name: "অগ্রদূত", icon: "🚀", description: "আমাদের প্ল্যাটফর্মে প্রথম পরীক্ষা দিয়েছেন!" }, Point_Century: { name: "পয়েন্ট সেঞ্চুরি", icon: "💯", description: "১০০ পয়েন্ট অর্জন করেছেন!" } };
+const FREE_DAILY_EXAM_LIMIT = 4;
+const RESET_HOUR = 21;
+let currentQuestions = [], userAnswers = {}, currentQuestionIndex = 0, currentExamSubject = '', performanceChartInstance = null, earnedPoints = 0, correctCount = 0, wrongCount = 0, examTimer = null;
+let countdownInterval = null, slideInterval = null;
+let isModelTestMode = false; let isDemoMode = false; let currentSetLetter = '১';
+
+const engToBdNum = { '0': '০', '1': '১', '2': '২', '3': '৩', '4': '৪', '5': '৫', '6': '৬', '7': '৭', '8': '৮', '9': '৯' };
+function toBn(num) { return String(num).replace(/[0-9]/g, match => engToBdNum[match]); }
+
+// =============================================
+// PDF RESULT STYLES - HUGE FONTS, BOLD & CLEAR
+// =============================================
+const reviewStyles = `
+<style id="smart-review-styles">
+
+.print-btn-wrapper { text-align: center; margin-bottom: 30px; }
+.print-btn {
+    background: linear-gradient(135deg, #1d4ed8, #2563eb);
+    color: white; border: none; padding: 18px 40px;
+    border-radius: 12px; font-size: 20px; font-weight: 900;
+    cursor: pointer; box-shadow: 0 6px 20px rgba(37,99,235,0.4);
+    display: inline-flex; align-items: center; gap: 10px;
+    transition: transform 0.2s;
+}
+.print-btn:hover { transform: translateY(-2px); }
+.print-btn:disabled { opacity: 0.7; cursor: not-allowed; }
+
+/* HEADER - HUGE FONT */
+.print-header-box {
+    border: 3px solid #1e293b; border-radius: 12px;
+    padding: 24px; margin-bottom: 25px; background: #f8fafc;
+}
+.print-header-top {
+    display: flex; justify-content: space-between;
+    align-items: center; border-bottom: 3px dashed #94a3b8;
+    padding-bottom: 20px; margin-bottom: 20px;
+}
+.print-header-texts { flex-grow: 1; text-align: center; }
+.print-header-title {
+    font-size: 38px; /* অনেক বড় সাইজ */
+    font-weight: 900; color: #0f172a;
+    margin: 0 0 10px 0; line-height: 1.3;
+}
+.print-header-sub { font-size: 26px; font-weight: 900; color: #334155; margin: 0; }
+.print-header-photo {
+    width: 120px; height: 120px; border-radius: 8px; /* বড় ছবি */
+    border: 4px solid #1e293b; object-fit: cover;
+    flex-shrink: 0; margin-left: 25px;
+}
+.print-info-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 16px; font-size: 22px; font-weight: 900; /* বড় সাইজ */
+    color: #1e293b; background: white; padding: 20px;
+    border-radius: 10px; border: 2px solid #cbd5e1;
+}
+.print-info-right { text-align: right; }
+
+/* CORE FIX: TWO-COLUMN LAYOUT USING FLEXBOX */
+.book-result-wrapper { 
+    text-align: left; 
+    font-family: 'Noto Sans Bengali', sans-serif; 
+    color: #0f172a; 
+}
+.book-two-col-wrap {
+    display: flex;
+    flex-direction: row;
+    gap: 50px; /* কলামের মাঝে ফাঁকা */
+    align-items: flex-start;
+}
+.book-col {
+    flex: 1;
+    min-width: 0;
+}
+
+/* Each question block */
+.book-q-block {
+    margin-bottom: 25px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid #cbd5e1;
+}
+.book-q-block:last-child { border-bottom: none; margin-bottom: 0; }
+
+/* QUESTION TEXT - HUGE */
+.book-q-text {
+    font-size: 22px; font-weight: 900;
+    margin: 0 0 12px 0;
+    line-height: 1.4;
+    color: #000; text-align: justify;
+}
+.book-q-tag {
+    font-size: 15px; background: #1e293b; border: 1px solid #000;
+    padding: 3px 10px; border-radius: 12px; color: #fff;
+    margin-left: 8px; font-weight: 900; display: inline-block;
+    vertical-align: middle;
+}
+
+/* OPTIONS 2-column grid - HUGE */
+.book-opt-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 12px; margin-bottom: 12px;
+}
+.book-opt-item {
+    display: flex; align-items: flex-start; gap: 10px;
+    font-size: 19px; font-weight: 800; color: #1e293b;
+    line-height: 1.35;
+}
+
+/* Circles - LARGE */
+.book-circle {
+    width: 30px; height: 30px; border-radius: 50%;
+    border: 2.5px solid #475569; display: flex;
+    justify-content: center; align-items: center;
+    font-size: 16px; font-weight: 900; flex-shrink: 0;
+    margin-top: -2px; background: #f8fafc;
+}
+.opt-correct { color: #14532d; font-weight: 900; }
+.opt-correct .book-circle { background: #16a34a !important; border-color: #16a34a !important; color: #fff !important; }
+.opt-wrong { color: #7f1d1d; text-decoration: line-through; text-decoration-thickness: 2.5px; }
+.opt-wrong .book-circle { background: #fef2f2 !important; border-color: #dc2626 !important; color: #dc2626 !important; text-decoration: none; }
+
+.unanswered-tag {
+    display: inline-block; font-size: 17px; font-weight: 900;
+    color: #b91c1c; border: 2px dashed #b91c1c;
+    padding: 4px 12px; border-radius: 6px;
+    margin-bottom: 12px; background: #fff1f2;
+}
+
+/* Explanation - HUGE */
+.book-exp-box {
+    border-top: 2px dashed #94a3b8; padding-top: 12px;
+    margin-top: 10px; font-size: 18px; font-weight: 800;
+    line-height: 1.5;
+    color: #1e293b; text-align: justify;
+}
+.book-exp-title { font-weight: 900; color: #000; display: inline; }
+.wrong-exp-list { list-style-type: none; padding: 0; margin: 8px 0 0 0; }
+.wrong-exp-list li {
+    position: relative; padding-left: 18px;
+    margin-bottom: 6px; font-size: 18px; font-weight: 800;
+    line-height: 1.45;
+}
+.wrong-exp-list li::before {
+    content: "•"; position: absolute; left: 0;
+    color: #dc2626; font-weight: 900; font-size: 24px;
+    line-height: 1; top: -3px;
+}
+
+@media (max-width: 800px) {
+    .book-two-col-wrap { flex-direction: column; gap: 0; }
+    .print-info-grid { grid-template-columns: 1fr; }
+    .print-info-right { text-align: left; }
+    .print-header-title { font-size: 28px; }
+    .print-header-photo { width: 90px; height: 90px; }
+}
+</style>`;
+
+if(!document.getElementById('smart-review-styles')) document.head.insertAdjacentHTML('beforeend', reviewStyles);
+
+// =============================================
+// CORE UTILITY FUNCTIONS
+// =============================================
+function showPage(pageId) {
+    if (pageId !== 'exam-page' || (!isModelTestMode && !isDemoMode)) {
+        const vp = document.querySelector('meta[name="viewport"]');
+        if (vp) vp.setAttribute('content', 'width=device-width, initial-scale=1.0');
+        if(slideInterval) clearInterval(slideInterval);
+    }
+    document.querySelectorAll('.card').forEach(p => p.classList.add('hidden'));
+    const page = document.getElementById(pageId);
+    if (page) { page.classList.remove('hidden'); window.scrollTo(0, 0); }
+}
+function showModal(content, actions = []) {
+    document.getElementById('modal-body').innerHTML = content;
+    const actionsContainer = document.getElementById('modal-actions');
+    actionsContainer.innerHTML = '';
+    actions.forEach(action => {
+        const btn = document.createElement('button');
+        btn.className = `btn btn-inline ${action.class || ''}`;
+        btn.innerText = action.text;
+        btn.onclick = () => {
+            let shouldClose = true;
+            if (action.handler) { const result = action.handler(); if (result === false) shouldClose = false; }
+            if (shouldClose) closeModal();
+        };
+        actionsContainer.appendChild(btn);
+    });
+    document.getElementById('custom-modal').classList.add('active');
+}
+function closeModal() { document.getElementById('custom-modal').classList.remove('active'); }
+function showLoading(message = "অপেক্ষা করুন...") { showModal(`<div class="loader"><div class="spinner"></div><p style="font-weight:bold;font-size:18px;">${message}</p></div>`); }
+
+const resizeImage = (file, maxSize, quality) => new Promise((resolve, reject) => {
+    const reader = new FileReader(); reader.readAsDataURL(file);
+    reader.onload = e => {
+        const img = new Image(); img.src = e.target.result;
+        img.onload = () => {
+            const c = document.createElement('canvas'); let { width, height } = img;
+            if (width > height) { if (width > maxSize) { height *= maxSize / width; width = maxSize; } }
+            else { if (height > maxSize) { width *= maxSize / height; height = maxSize; } }
+            c.width = width; c.height = height; c.getContext('2d').drawImage(img, 0, 0, width, height);
+            resolve(c.toDataURL('image/jpeg', quality));
+        }; img.onerror = reject;
+    }; reader.onerror = reject;
+});
+
+function startCountdown(elementId, isPopup = false) {
+    if (countdownInterval) clearInterval(countdownInterval);
+    const el = document.getElementById(elementId); if (!el) return;
+    el.style.cssText = isPopup ? "font-size:19px;font-weight:900;letter-spacing:1px;" : "font-size:16px;font-weight:900;display:inline-block;";
+    countdownInterval = setInterval(() => {
+        const now = new Date(), resetTime = new Date();
+        resetTime.setHours(RESET_HOUR, 0, 0, 0);
+        if (now >= resetTime) resetTime.setDate(resetTime.getDate() + 1);
+        const diff = resetTime - now;
+        if (diff <= 0) { el.textContent = "এখনই!"; clearInterval(countdownInterval); return; }
+        const h = String(Math.floor(diff / 3600000)).padStart(2, '0'),
+              m = String(Math.floor((diff % 3600000) / 60000)).padStart(2, '0'),
+              s = String(Math.floor((diff % 60000) / 1000)).padStart(2, '0');
+        el.innerHTML = `${h}:${m}:${s}`;
+        el.style.color = `hsl(${(s * 6) % 360}, 90%, 35%)`;
+    }, 1000);
+}
+
+// =============================================
+// AUTH
+// =============================================
+function showFieldError(fieldId, message) {
+    const field = document.getElementById(fieldId); if (!field) return;
+    const oldError = field.parentElement.querySelector('.field-error-msg'); if (oldError) oldError.remove();
+    const errorDiv = document.createElement('div'); errorDiv.className = 'field-error-msg';
+    errorDiv.style.cssText = 'color:#dc3545;font-size:14px;margin-top:-10px;margin-bottom:10px;padding:8px 12px;background:#fff5f5;border-left:3px solid #dc3545;border-radius:4px;font-weight:700';
+    errorDiv.innerHTML = '⚠️ ' + message; field.style.borderColor = '#dc3545'; field.style.backgroundColor = '#fff8f8';
+    field.insertAdjacentElement('afterend', errorDiv); field.focus();
+    setTimeout(() => { errorDiv.remove(); field.style.borderColor = ''; field.style.backgroundColor = ''; }, 4000);
+}
+function handleRegistration() {
+    const name = document.getElementById('reg-name').value.trim(), phone = document.getElementById('reg-phone').value.trim(), email = document.getElementById('reg-email').value.trim(), password = document.getElementById('reg-password').value, confirmPassword = document.getElementById('reg-confirm-password').value, photoFile = document.getElementById('reg-photo').files[0];
+    if (!name) return showFieldError('reg-name', 'নাম দেওয়া বাধ্যতামূলক।');
+    if (!phone) return showFieldError('reg-phone', 'ফোন নম্বর দেওয়া বাধ্যতামূলক।');
+    if (!/^[0-9]{11}$/.test(phone)) return showFieldError('reg-phone', 'ফোন নম্বর অবশ্যই ১১ সংখ্যার হতে হবে।');
+    if (!email) return showFieldError('reg-email', 'ইমেইল অ্যাড্রেস দেওয়া বাধ্যতামূলক।');
+    if (!password) return showFieldError('reg-password', 'পাসওয়ার্ড দেওয়া বাধ্যতামূলক।');
+    if (password.length < 6) return showFieldError('reg-password', 'পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে।');
+    if (password !== confirmPassword) return showFieldError('reg-confirm-password', 'পাসওয়ার্ড দুটি মিলছে না।');
+    showLoading("রেজিস্ট্রেশন করা হচ্ছে...");
+    const sendToServer = (photoBase64 = "") => {
+        fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: "register_user", name, phone, email, password, photo: photoBase64 }) })
+        .then(res => res.json()).then(data => {
+            closeModal();
+            if (data.status === "success") { showModal(`<div style="text-align:center;"><div style="font-size:50px;margin-bottom:10px;">🎉</div><h3 style="color:#28a745;font-size:22px;">রেজিস্ট্রেশন সফল!</h3></div>`, [{ text: "ড্যাশবোর্ডে যান", handler: () => { localStorage.setItem('currentUser', JSON.stringify(data.user)); routeUser(data.user); }}]); }
+            else { showModal(`<div style="text-align:center;"><div style="font-size:40px;">❌</div><p style="color:red;font-weight:700;font-size:18px;">${data.message}</p></div>`, [{ text: "আবার চেষ্টা করুন" }]); }
+        }).catch(() => { closeModal(); showModal(`<p style="color:red;font-size:18px;font-weight:bold;">সার্ভারে সমস্যা হয়েছে।</p>`, [{ text: "ঠিক আছে" }]); });
+    };
+    if (photoFile) { resizeImage(photoFile, 800, 0.7).then(sendToServer).catch(() => { closeModal(); alert("ছবি প্রসেস করতে সমস্যা।"); }); }
+    else { sendToServer(""); }
+}
+function handleLogin() {
+    const phone = document.getElementById('username').value, password = document.getElementById('password').value;
+    if (!phone || !password) return showModal(`<p style="color:red;font-weight:bold;font-size:18px;">ফোন নম্বর ও পাসওয়ার্ড দিন।</p>`, [{ text: "ঠিক আছে" }]);
+    showLoading("লগইন করা হচ্ছে...");
+    fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: "login", phone, password }) })
+    .then(res => res.json()).then(data => {
+        closeModal();
+        if (data.status === "success") { localStorage.setItem('currentUser', JSON.stringify(data.user)); routeUser(data.user); }
+        else { showModal(`<p style="color:red;font-weight:bold;font-size:18px;">${data.message}</p>`, [{ text: "ঠিক আছে" }]); }
+    }).catch(() => { closeModal(); showModal(`<p style="color:red;font-weight:bold;font-size:18px;">সার্ভারে সমস্যা।</p>`, [{ text: "ঠিক আছে" }]); });
+}
+function handlePasswordReset() {
+    const phone = document.getElementById('reset-phone').value, email = document.getElementById('reset-email').value;
+    if (!phone || !email) return alert("ফোন নম্বর ও ইমেইল দিন।");
+    showLoading("প্রসেস করা হচ্ছে...");
+    fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: "reset_password", phone, email }) })
+    .then(res => res.json()).then(data => { closeModal(); showModal(`<p style="font-size:18px;font-weight:bold;">${data.message}</p>`, [{ text: "ঠিক আছে", handler: () => { if (data.status === 'success') showPage('login-page'); } }]); });
+}
+function logout() { if(countdownInterval) clearInterval(countdownInterval); localStorage.removeItem('currentUser'); enhanceHomePage(); showPage('home-page'); }
+function routeUser(user) {
+    if (user.role === 'admin') {
+        showPage('admin-dashboard');
+        fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: "get_template_url" }) }).then(res => res.json()).then(data => { if (data.status === 'success') document.getElementById('csv-template-link').href = data.url; });
+    } else { displayStudentDashboard(user); }
+}
+
+// =============================================
+// HOME PAGE
+// =============================================
+function enhanceHomePage() {
+    const homePageCard = document.getElementById('home-page'); if (!homePageCard) return;
+    homePageCard.innerHTML = `<div class="hero-section"><div class="hero-content"><h1 class="hero-title">BPSC পরীক্ষার প্রস্তুতি</h1><p class="hero-subtitle">বাংলাদেশের সবচেয়ে বড়, বিশ্বস্ত নার্স ও মিডওয়াইফ অনলাইন পরীক্ষা প্রস্তুতি প্ল্যাটফর্ম</p><div class="hero-stats"><div class="stat-box"><div class="stat-number">২০০০+</div><div class="stat-label">রেগুলার শিক্ষার্থী</div></div><div class="stat-box"><div class="stat-number">৫০০০+</div><div class="stat-label">প্রশ্ন ভান্ডার</div></div><div class="stat-box"><div class="stat-number">৯৭%</div><div class="stat-label">সাফল্য</div></div></div></div></div><div class="features-section"><h2 class="section-title">আমাদের বিশেষত্ব</h2><div class="features-grid"><div class="feature-card feature-card-1"><div class="feature-icon">📝</div><h3>বিষয়ভিত্তিক পরীক্ষা</h3><p>সঠিক ও ভুল উত্তরের ব্যাখ্যাসহ</p></div><div class="feature-card feature-card-2"><div class="feature-icon">⏱️</div><h3>মডেল টেস্ট</h3><p>প্রকৃত পরীক্ষার মতো অনুশীলন</p></div><div class="feature-card feature-card-3"><div class="feature-icon">📊</div><h3>স্মার্ট পিডিএফ</h3><p>প্রতিটি পরীক্ষার পিডিএফ গাইড</p></div><div class="feature-card feature-card-4"><div class="feature-icon">🏆</div><h3>লিডারবোর্ড</h3><p>সারাদেশে আপনার অবস্থান যাচাই</p></div></div></div><div class="cta-section"><button class="btn btn-primary-large" onclick="showPage('login-page')"><span class="btn-icon">➡️</span> লগইন করুন</button><button class="btn btn-secondary-large" onclick="showPage('register-page')"><span class="btn-icon">➕</span> নতুন রেজিস্ট্রেশন</button></div><div class="home-leaderboard-section"><div class="leaderboard-header"><h3 class="section-title">🏆 সেরা ১০ স্কোরার</h3><div class="live-badge"><span class="pulse-dot"></span>LIVE</div></div><div id="home-leaderboard"></div></div><div class="supervisor-section"><div class="supervisor-card"><div class="supervisor-info"><h3>সার্বিক তত্ত্বাবধানে</h3><h2>মোঃ আকতারুজ্জামান</h2><p>পরীক্ষা প্রশ্ন প্রস্তুতকারক, নোট রচয়িতা এবং সার্বিক সমন্বয়ক</p></div><div class="supervisor-contact"><a href="tel:01750733269" class="contact-btn phone-btn">📞 কল করুন- ০১৭৫০৭৩৩২৬৯</a><a href="${ADMIN_WHATSAPP}" target="_blank" class="contact-btn sms-btn">💬 WhatsApp</a></div></div></div><div class="social-section"><h3 class="section-title">আমাদের সাথে যুক্ত হন</h3><div class="social-links"><a href="https://www.facebook.com/groups/2142520472845314" target="_blank" class="social-link facebook"><div class="social-icon-wrapper">🔵</div><span>Facebook Group</span></a><a href="https://chat.whatsapp.com/EvHxeC6GIWLEj66SQmYO3W" target="_blank" class="social-link whatsapp"><div class="social-icon-wrapper">🟢</div><span>WhatsApp Group</span></a></div></div><footer class="home-footer"><div class="footer-links"><a href="#" onclick="showAboutModal()">আমাদের সম্পর্কে</a><a href="#" onclick="showContactModal()">যোগাযোগ</a><a href="#" onclick="showPrivacyModal()">গোপনীয়তা নীতি</a></div><p class="footer-copyright">© ${new Date().getFullYear()} BPSC পরীক্ষার প্রস্তুতি।</p></footer>`;
+    loadLeaderboard('home-leaderboard');
+}
+function showAboutModal() { showModal(`<h3>আমাদের সম্পর্কে</h3><p style="text-align:justify;line-height:1.9;font-size:16px;"><strong>BPSC পরীক্ষার প্রস্তুতি</strong> - বাংলাদেশের সবচেয়ে বিশ্বস্ত অনলাইন পরীক্ষা সিস্টেম।</p>`, [{ text: "বন্ধ করুন", class: "btn-secondary" }]); }
+function showContactModal() { showModal(`<h3>📞 যোগাযোগ করুন</h3><div style="text-align:left;line-height:2.2;font-size:16px;"><p><strong>📞 ফোন:</strong> <a href="tel:01750733269" style="color:#3b82f6;font-weight:bold;">01750733269</a></p><p><strong>📧 ইমেইল:</strong> <a href="mailto:aktar8264@gmail.com" style="color:#3b82f6;font-weight:bold;">aktar8264@gmail.com</a></p></div>`, [{ text: "বন্ধ করুন", class: "btn-secondary" }]); }
+function showPrivacyModal() { showModal(`<h3>🔒 গোপনীয়তা নীতি</h3><p style="line-height:1.9;font-size:16px;">আমরা শুধুমাত্র আপনার নাম, ফোন ও ইমেইল সংগ্রহ করি। আপনার তথ্য সম্পূর্ণ নিরাপদ।</p>`, [{ text: "বন্ধ করুন", class: "btn-secondary" }]); }
+
+// =============================================
+// STUDENT DASHBOARD
+// =============================================
+function displayStudentDashboard(user) {
+    const dashboard = document.getElementById('student-dashboard'); if(!dashboard) return;
+    if(countdownInterval) clearInterval(countdownInterval);
+    const isPremium = user.exam_permission === true, exams = parseInt(user.exams_taken) || 0, points = parseFloat(user.total_points) || 0, photo = user.photo || 'https://via.placeholder.com/150', name = user.name || 'শিক্ষার্থী', email = user.email || '', progress = Math.min((points / 500) * 100, 100).toFixed(0);
+    const badgesHTML = (user.badges ? user.badges.split(',') : []).map(b => BADGE_INFO[b] ? `<div class="enh-badge" title="${BADGE_INFO[b].description}">${BADGE_INFO[b].icon} ${BADGE_INFO[b].name}</div>` : '').join('') || `<p class="enh-no-badge">পরীক্ষা দিন এবং ব্যাজ অর্জন করুন! 🎯</p>`;
+    let paymentCardHTML = '';
+    if (!isPremium) { paymentCardHTML = `<div class="enh-section" style="background:linear-gradient(145deg,#1e1b4b 0%,#4f46e5 100%);color:white;position:relative;overflow:hidden;margin-top:20px;"><div class="enh-section-header"><h3 style="color:white;margin-bottom:5px;">⭐ প্রিমিয়াম সদস্য হোন</h3></div><p style="color:rgba(255,255,255,0.8);font-size:15px;margin:0 0 20px 0;">আনলিমিটেড পরীক্ষা, মডেল টেস্ট ও সকল সুবিধা পেতে এখনই আপগ্রেড করুন।</p><div style="background:rgba(255,255,255,0.1);border-radius:12px;padding:15px;margin-bottom:15px;text-align:center;"><div style="color:#fbbf24;font-size:32px;font-weight:900;margin:5px 0;">মাত্র ৳২৫০</div></div><div style="background:linear-gradient(135deg,#fbbf24,#f97316);border-radius:12px;padding:12px;text-align:center;margin-bottom:15px;"><div style="font-size:14px;color:#1c1c1c;margin-bottom:4px;font-weight:700;">বিকাশ/নগদ/রকেট Send Money করুন:</div><div style="font-size:24px;font-weight:900;color:#1c1c1c;letter-spacing:2px;">${PAYMENT_NUMBER}</div></div><a href="${ADMIN_WHATSAPP}?text=আমি%20প্রিমিয়াম%20হতে%20চাই।" target="_blank" style="display:flex;align-items:center;justify-content:center;gap:8px;background:linear-gradient(135deg,#25d366,#128c7e);color:white;padding:16px;border-radius:12px;text-decoration:none;font-weight:800;font-size:17px;">WhatsApp-এ Screenshot পাঠান</a></div>`; }
+    dashboard.innerHTML = `<div class="enh-topbar"><div class="enh-topbar-logo">📚 BPSC প্রস্তুতি</div><button class="enh-logout-btn" onclick="logout()">🚪 লগআউট</button></div><div class="enh-profile-hero"><div class="enh-hero-blob1"></div><div class="enh-hero-blob2"></div><div class="enh-profile-body"><div class="enh-avatar-wrap"><img src="${photo}" class="enh-avatar" alt="Profile" onerror="this.src='https://via.placeholder.com/150'"><div class="enh-avatar-ring"></div></div><div class="enh-profile-info"><h2 class="enh-username">${name}</h2><p class="enh-email">📧 ${email}</p>${isPremium ? '<div class="enh-premium-badge">⭐ প্রিমিয়াম সদস্য</div>' : '<div class="enh-free-badge">🆓 ফ্রি সদস্য</div>'}</div></div><div class="enh-stats-row"><div class="enh-stat-card stat-points"><div class="enh-stat-top"><span class="enh-stat-icon-new">🏅</span><span class="enh-stat-tag">পয়েন্ট</span></div><div class="enh-stat-big">${points.toFixed(2)}</div></div><div class="enh-stat-card stat-exams"><div class="enh-stat-top"><span class="enh-stat-icon-new">📝</span><span class="enh-stat-tag">পরীক্ষা</span></div><div class="enh-stat-big">${exams}</div></div><div class="enh-stat-card stat-rank"><div class="enh-stat-top"><span class="enh-stat-icon-new">🏆</span><span class="enh-stat-tag">র‍্যাঙ্ক</span></div><div class="enh-stat-big">#<span id="enh-rank-display"><span class="enh-rank-loader"></span></span></div></div></div><div class="enh-progress-section"><div class="enh-progress-label"><span>লেভেল প্রগ্রেস</span><span>${progress}%</span></div><div class="enh-progress-track"><div class="enh-progress-fill" style="width:${progress}%"></div></div><p class="enh-progress-hint">৫০০ পয়েন্ট = সর্বোচ্চ লেভেল 🎯</p></div></div><div id="dashboard-content"></div>`;
+    const contentDiv = document.getElementById('dashboard-content');
+    contentDiv.innerHTML = `<div id="free-user-notice-container"></div><div class="enh-section"><div class="enh-section-header"><span class="enh-section-icon">🎖️</span><h3>আমার ব্যাজ সংগ্রহ</h3></div><div class="enh-badges-wrap">${badgesHTML}</div></div><div class="enh-section"><div class="enh-section-header"><span class="enh-section-icon">📖</span><h3>বিষয়ভিত্তিক পরীক্ষা</h3></div><div class="enh-subject-grid"><button class="enh-subject-btn sub-nursing" onclick="startSubjectExam('Questions_Nursing')"><span class="sub-icon">🩺</span><span class="sub-name">নার্সিং এন্ড মিডওয়াইফারি</span><span class="sub-arrow">›</span></button><button class="enh-subject-btn sub-bangla" onclick="startSubjectExam('Questions_Bangla')"><span class="sub-icon">📕</span><span class="sub-name">বাংলা</span><span class="sub-arrow">›</span></button><button class="enh-subject-btn sub-english" onclick="startSubjectExam('Questions_English')"><span class="sub-icon">📘</span><span class="sub-name">ইংরেজি</span><span class="sub-arrow">›</span></button><button class="enh-subject-btn sub-gk" onclick="startSubjectExam('Questions_GK')"><span class="sub-icon">🌍</span><span class="sub-name">সাধারণ জ্ঞান</span><span class="sub-arrow">›</span></button></div></div><div class="enh-section"><div class="enh-section-header"><span class="enh-section-icon">🎯</span><h3>BPSC মডেল টেস্ট</h3></div><div class="enh-model-test-card" onclick="startModelTest()"><div class="enh-model-left"><div class="enh-model-icon">📋</div><div><h4>ফুল মডেল টেস্ট</h4><p>৫০টি প্রশ্ন • ৩০ মিনিট • নেগেটিভ মার্কিং</p></div></div><div class="enh-start-arrow">▶</div></div><button class="btn" onclick="startDemoModelTest()" style="margin-top:14px;background:linear-gradient(135deg,#8b5cf6,#6366f1);padding:14px;border-radius:12px;font-size:16px;font-weight:bold;">👀 ডেমো দেখুন (ফ্রি)</button></div><div class="enh-section"><div class="enh-section-header"><span class="enh-section-icon">📊</span><h3>পারফরম্যান্স গ্রাফ</h3></div><div class="enh-chart-wrap"><canvas id="performanceChart"></canvas></div></div><div class="enh-section enh-dark-section"><div class="enh-section-header"><span class="enh-section-icon">🏆</span><h3 style="color:white;">লিডারবোর্ড (সেরা ১০)</h3><span class="enh-live-dot"><span class="pulse-dot"></span>LIVE</span></div><div id="student-leaderboard" class="enh-leaderboard-wrap"></div></div>${paymentCardHTML}`;
+    showPage('student-dashboard');
+    loadLeaderboard('student-leaderboard', user.phone);
+    loadPerformanceData(user.phone);
+    addFreeUserNotice(isPremium);
+}
+
+async function addFreeUserNotice(isPremium) {
+    const container = document.getElementById('free-user-notice-container'); if(!container) return; container.innerHTML = "";
+    if (isPremium) return;
+    const user = JSON.parse(localStorage.getItem('currentUser')); if (!user) return;
+    const response = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: "check_daily_limit", phone: user.phone }) });
+    const data = await response.json();
+    if (data.status === 'success') {
+        const todayCount = Math.min(data.count, FREE_DAILY_EXAM_LIMIT), remaining = Math.max(0, FREE_DAILY_EXAM_LIMIT - todayCount);
+        container.innerHTML = `<div style="margin:10px;"><div style="background:linear-gradient(135deg,#eff6ff,#dbeafe);border:2px solid #3b82f6;border-radius:14px;padding:15px 18px;"><div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;"><span style="font-size:28px;">📋</span><h4 style="margin:0;color:#1e40af;font-size:18px;font-weight:800;">ফ্রী সদস্যের পরীক্ষার নিয়ম</h4></div><div style="background:white;border-radius:10px;padding:14px;margin-bottom:12px;"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;"><span style="font-size:15px;color:#374151;font-weight:700;">আজকের পরীক্ষা:</span><span style="font-size:16px;font-weight:900;color:${remaining > 0 ? '#16a34a' : '#dc3545'};">${todayCount}/${FREE_DAILY_EXAM_LIMIT} ব্যবহৃত</span></div><div style="background:#e5e7eb;border-radius:10px;height:12px;overflow:hidden;"><div style="width:${(todayCount/FREE_DAILY_EXAM_LIMIT)*100}%;height:100%;background:${remaining > 0 ? 'linear-gradient(90deg,#3b82f6,#6366f1)' : '#dc3545'};border-radius:10px;"></div></div>${remaining > 0 ? `<p style="margin:10px 0 0;font-size:15px;color:#16a34a;font-weight:700;text-align:center;">✅ আরও <strong>${remaining}টি</strong> পরীক্ষা দেওয়ার সুযোগ আছে।</p>` : `<p style="margin:10px 0 0;font-size:16px;color:#374151;font-weight:800;text-align:center;">⏰ পরবর্তী সুযোগ: <strong id="live-countdown-timer"></strong></p>`}</div></div></div>`;
+        if (remaining <= 0) startCountdown('live-countdown-timer', false);
+    }
+}
+
+function loadLeaderboard(containerId, currentUserPhone = null) {
+    const container = document.getElementById(containerId); if (!container) return;
+    fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: "get_leaderboard" }) }).then(res => res.json()).then(data => {
+        if (data.status === 'success' && data.leaderboard.length > 0) {
+            const myData = currentUserPhone ? data.leaderboard.find(p => p.phone === currentUserPhone) : null;
+            if(currentUserPhone && myData){ const rankEl = document.getElementById('enh-rank-display'); if(rankEl) rankEl.innerHTML = myData.rank; }
+            const top10 = data.leaderboard.slice(0, 10);
+            let tableHTML = `<div class="enh-lb-table-wrap"><table class="enh-lb-table"><thead><tr><th>র‍্যাঙ্ক</th><th>নাম</th><th>পরীক্ষা</th><th>পয়েন্ট</th></tr></thead><tbody>`;
+            let myInTop10 = false;
+            top10.forEach((p, i) => {
+                const isMe = currentUserPhone && p.phone === currentUserPhone; if (isMe) myInTop10 = true;
+                const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${p.rank}`;
+                tableHTML += `<tr class="${isMe ? 'enh-my-row' : ''}"><td class="enh-rank-cell">${medal}</td><td>${p.name}${isMe ? ' <span class="enh-you-tag">আপনি</span>' : ''}</td><td>${p.exams_taken}</td><td class="enh-point-cell">${parseFloat(p.total_points).toFixed(2)}</td></tr>`;
+            });
+            if (currentUserPhone && !myInTop10 && myData) { tableHTML += `<tr><td colspan="4" class="enh-separator-row">・・・</td></tr><tr class="enh-my-row"><td class="enh-rank-cell">#${myData.rank}</td><td>${myData.name} <span class="enh-you-tag">আপনি</span></td><td>${myData.exams_taken}</td><td class="enh-point-cell">${parseFloat(myData.total_points).toFixed(2)}</td></tr>`; }
+            container.innerHTML = tableHTML + `</tbody></table></div>`;
+        }
+    });
+}
+function loadPerformanceData(phone) {
+    fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: "get_performance_data", phone }) }).then(res => res.json()).then(data => {
+        if (data.status === 'success' && data.history.length > 0) {
+            const labels = data.history.map(item => new Date(item.date).toLocaleDateString('bn-BD', { day: 'numeric', month: 'short' }));
+            const points = data.history.map(item => item.points_earned);
+            const ctx = document.getElementById('performanceChart').getContext('2d');
+            if (performanceChartInstance) performanceChartInstance.destroy();
+            performanceChartInstance = new Chart(ctx, { type: 'line', data: { labels, datasets: [{ label: 'প্রাপ্ত পয়েন্ট', data: points, borderColor: 'rgba(79,70,229,1)', backgroundColor: 'rgba(79,70,229,0.2)', fill: true, tension: 0.1 }] } });
+        }
+    });
+}
+
+// =============================================
+// EXAM ELIGIBILITY
+// =============================================
+async function checkExamEligibility(isModelTest = false) {
+    const user = JSON.parse(localStorage.getItem('currentUser')); if (!user) return false;
+    if (user.exam_permission === true) return true;
+    if (isModelTest) {
+        showModal(`<div style="text-align:center;"><div style="font-size:50px;margin-bottom:10px;">🔒</div><h3 style="color:#4f46e5;font-size:22px;">মডেল টেস্ট - প্রিমিয়াম ফিচার</h3><p style="font-size:16px;color:#555;">মাত্র ৳২৫০ টাকায় প্রিমিয়াম হোন!</p><a href="${ADMIN_WHATSAPP}?text=আমি%20প্রিমিয়াম%20হতে%20চাই" target="_blank" style="display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#25d366,#128c7e);color:white;padding:16px;border-radius:12px;text-decoration:none;font-weight:800;font-size:18px;margin-top:14px;">WhatsApp-এ যোগাযোগ করুন</a></div>`, [{ text: "বন্ধ করুন", class: "btn-danger" }]);
+        return false;
+    }
+    showLoading("চেক করা হচ্ছে...");
+    try {
+        const response = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'check_daily_limit', phone: user.phone }) });
+        const data = await response.json(); closeModal();
+        if (data.status === 'success' && data.count >= FREE_DAILY_EXAM_LIMIT) {
+            showModal(`<div style="text-align:center;"><div style="font-size:50px;">⏰</div><h3 style="color:#dc3545;font-size:24px;">আজকের পরীক্ষা শেষ!</h3><div style="background:#fffbe6;border:2px solid #ffc107;border-radius:12px;padding:14px;margin:15px 0;font-size:16px;color:#856404;font-weight:800;">⏱️ পরবর্তী সুযোগ: <strong id="popup-countdown-timer"></strong></div></div>`, [{ text: "বন্ধ করুন", class: "btn-danger" }]);
+            startCountdown('popup-countdown-timer', true);
+            return false;
+        }
+        return true;
+    } catch (error) { closeModal(); return false; }
+}
+
+async function startSubjectExam(subjectId) {
+    showLoading("অপেক্ষা করুন...");
+    const canTakeExam = await checkExamEligibility(false);
+    if (canTakeExam) { showSyllabusPage(subjectId); }
+}
+
+async function startModelTest() {
+    showLoading("অপেক্ষা করুন...");
+    const canTakeExam = await checkExamEligibility(true);
+    if (!canTakeExam) return;
+    showModal(`<h3 style="margin-bottom:15px;font-size:22px;">মডেল টেস্টের নম্বর বণ্টন</h3><div style="text-align:left;font-size:16px;line-height:2.2;background:#f8f9fa;padding:18px;border-radius:12px;font-weight:600;"><p style="margin:0;border-bottom:1px solid #e9ecef;">🩺 <strong>নার্সিং:</strong> ২০ নম্বর</p><p style="margin:0;border-bottom:1px solid #e9ecef;">📕 <strong>বাংলা:</strong> ১০ নম্বর</p><p style="margin:0;border-bottom:1px solid #e9ecef;">📘 <strong>ইংরেজি:</strong> ১০ নম্বর</p><p style="margin:0;">🌍 <strong>সাধারণ জ্ঞান:</strong> ১০ নম্বর</p></div>`, [
+        { text: "হ্যাঁ, শুরু করুন", handler: () => {
+            showLoading("অপেক্ষা করুন, প্রশ্ন লোড হচ্ছে...");
+            currentExamSubject = "BPSC মডেল টেস্ট"; isModelTestMode = true; isDemoMode = false;
+            const sets = ['১', '২', '৩', '৪']; currentSetLetter = sets[Math.floor(Math.random() * sets.length)];
+            loadQuestions("get_model_test_questions", {}, 30 * 60);
+            return false;
+        }},
+        { text: "না, পরে দিব", class: "btn-danger" }
+    ]);
+}
+
+function startDemoModelTest() {
+    showLoading("ডেমো লোড হচ্ছে...");
+    currentExamSubject = "BPSC মডেল টেস্ট (ডেমো)"; isModelTestMode = true; isDemoMode = true; currentSetLetter = 'ডেমো';
+    loadQuestions("get_model_test_questions", {}, null);
+}
+function endDemo() {
+    isDemoMode = false; isModelTestMode = false;
+    const vp = document.querySelector('meta[name="viewport"]'); if (vp) vp.setAttribute('content', 'width=device-width, initial-scale=1.0');
+    if(slideInterval) clearInterval(slideInterval);
+    const examPage = document.getElementById('exam-page');
+    examPage.style.padding = '25px'; examPage.style.maxWidth = '500px'; examPage.style.backgroundColor = '#ffffff'; examPage.style.boxShadow = '0 10px 30px rgba(0,0,0,0.08)';
+    showPage('student-dashboard');
+}
+
+// =============================================
+// EXAM CORE
+// =============================================
+const pdfStyles = `<style id="pdf-custom-styles">
+    .pdf-exam-container{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;background:#e9ecef;}
+    .pdf-exam-wrapper{width:850px!important;min-width:850px!important;background-color:#fff;padding:40px;margin:0 auto;color:#000;text-align:left;font-family:'Noto Sans Bengali',sans-serif;box-shadow:0 10px 30px rgba(0,0,0,0.15);box-sizing:border-box;}
+    .pdf-instructions{font-size:16px;font-weight:700;font-style:italic;margin-bottom:25px;line-height:1.6;text-align:justify;}
+    .pdf-q-container{column-count:2;column-gap:40px;}
+    .pdf-q-block{break-inside:avoid;page-break-inside:avoid;margin-bottom:25px;font-size:16px;}
+    .pdf-options-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+    .pdf-option-label{display:flex;align-items:flex-start;cursor:pointer;line-height:1.4;padding:4px;border-radius:4px;transition:background 0.2s;font-weight:700;}
+    .pdf-circle{width:26px;height:26px;border:2px solid #000;border-radius:50%;display:inline-flex;justify-content:center;align-items:center;margin-right:10px;font-size:15px;font-weight:bold;flex-shrink:0;}
+    .pdf-option-label:hover{background-color:#f0f0f0;}
+    .pdf-option-label.selected .pdf-circle{background-color:#000;color:#fff;border-color:#000;}
+    .pdf-option-label.selected{font-weight:900;}
+    .pdf-sticky-timer{position:sticky;top:0;background:#fff;padding:14px;border-bottom:4px solid #dc3545;z-index:100;text-align:center;font-size:22px;font-weight:900;color:#dc3545;box-shadow:0 4px 10px rgba(0,0,0,0.1);width:100%;box-sizing:border-box;}
+</style>`;
+
+function loadQuestions(action, params, timeInSeconds = null) {
+    earnedPoints = 0; correctCount = 0; wrongCount = 0; userAnswers = {};
+    fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action, ...params }) })
+    .then(res => res.json()).then(data => {
+        closeModal();
+        if (data.status === 'success' && data.questions.length > 0) {
+            currentQuestions = data.questions; currentQuestionIndex = 0;
+            const examPage = document.getElementById('exam-page');
+            if (isModelTestMode) {
+                const vp = document.querySelector('meta[name="viewport"]'); if(vp) vp.setAttribute('content', 'width=850');
+                document.getElementById('exam-title').style.display = 'none';
+                examPage.style.padding = '0'; examPage.style.maxWidth = '100%'; examPage.style.backgroundColor = '#e9ecef'; examPage.style.boxShadow = 'none';
+                renderAllQuestionsForModelTest();
+            } else {
+                document.getElementById('exam-title').style.display = 'block'; document.getElementById('exam-title').innerText = currentExamSubject;
+                examPage.style.padding = '25px'; examPage.style.maxWidth = '500px'; examPage.style.backgroundColor = '#ffffff'; examPage.style.boxShadow = '0 10px 30px rgba(0,0,0,0.08)';
+                renderQuestion();
+            }
+            showPage('exam-page');
+            if (isDemoMode) {
+                document.getElementById('pdf-timer-display').innerText = "👀 ডেমো মোড";
+                const qc = document.getElementById('quiz-container');
+                qc.innerHTML = qc.innerHTML.replace('onclick="submitModelTest()"', 'onclick="endDemo()"').replace('✅ পরীক্ষা জমা দিন', '❌ ডেমো থেকে বের হোন');
+                setTimeout(() => { showModal(`<div style="text-align:center;"><div style="font-size:40px;">👀</div><h3 style="color:#4f46e5;font-size:24px;">এটি ডেমো মডেল টেস্ট</h3><p style="font-size:16px;color:#555;font-weight:600;">প্রিমিয়াম মেম্বার হলে আসল মডেল টেস্ট দিতে পারবেন।</p><div style="background:linear-gradient(135deg,#fbbf24,#f97316);border-radius:12px;padding:16px;margin-bottom:14px;"><div style="font-size:24px;font-weight:900;color:#1c1c1c;">${PAYMENT_NUMBER}</div></div><a href="${ADMIN_WHATSAPP}?text=আমি%20প্রিমিয়াম%20হতে%20চাই।" target="_blank" style="display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#25d366,#128c7e);color:white;padding:16px;border-radius:12px;text-decoration:none;font-weight:800;font-size:18px;">WhatsApp-এ যোগাযোগ করুন</a></div>`, [{ text: "ডেমো দেখুন", class: "btn-secondary", handler: () => { let sc = 0; if(slideInterval) clearInterval(slideInterval); slideInterval = setInterval(() => { window.scrollBy(0, 1.5); sc += 1.5; if(sc > 500) clearInterval(slideInterval); }, 25); }}]); }, 600);
+            } else if (timeInSeconds) { startTimer(timeInSeconds); } else { document.getElementById('timer').innerText = ''; }
+        } else { showModal(`<p style="color:red;font-size:18px;font-weight:bold;">${data.message || "প্রশ্ন লোড করা যায়নি।"}</p>`, [{ text: 'ঠিক আছে', handler: backToDashboard }]); }
+    });
+}
+
+function renderAllQuestionsForModelTest() {
+    document.getElementById('feedback-container').innerHTML = ''; document.getElementById('next-q-btn').style.display = 'none';
+    const prevBtn = document.getElementById('prev-q-btn'); if (prevBtn) prevBtn.style.display = 'none';
+    const pb = document.querySelector('.progress-bar-container'); if(pb) pb.style.display = 'none';
+    document.getElementById('question-counter').style.display = 'none'; document.getElementById('timer').style.display = 'none';
+    if(!document.getElementById('pdf-custom-styles')) document.head.insertAdjacentHTML('beforeend', pdfStyles);
+    let quizHTML = `<div class="pdf-sticky-timer" id="pdf-timer-display">সময় বাকি: ৩০:০০</div><div class="pdf-exam-container"><div class="pdf-exam-wrapper"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;"><span style="font-weight:900;font-size:17px;">বিশেষ দ্রষ্টব্য: মডেল প্রস্তুতি প্রশ্ন</span><div style="border:2px solid #000;padding:6px 18px;font-weight:900;border-radius:6px;font-size:20px;">সেট-${currentSetLetter}</div></div><div style="text-align:center;margin-bottom:25px;"><h2 style="margin:0 0 10px 0;font-size:32px;font-weight:900;">বাংলাদেশ সরকারী কর্ম কমিশন সচিবালয়</h2><h3 style="margin:0 0 10px 0;font-size:22px;font-weight:900;">সিনিয়র স্টাফ নার্স / নন-ক্যাডার নিয়োগ পরীক্ষা — প্রস্তুতি মডেল প্রশ্ন</h3><p style="margin:0;font-weight:900;font-size:18px;">বিষয়: বাংলা, ইংরেজী, সাধারণ জ্ঞান, নার্সিং ও মিডওয়াইফারি।</p></div><div style="display:flex;justify-content:space-between;font-weight:900;font-size:20px;border-bottom:3px solid #000;padding-bottom:10px;margin-bottom:18px;"><span>পূর্ণমান: ৫০</span><span>সময়: ৩০ মিনিট</span></div><div class="pdf-instructions"><b>নির্দেশনাবলী:</b> প্রতিটি প্রশ্নের মান ১। প্রতিটি ভুল উত্তরের জন্য ০.৫০ নম্বর কাটা যাবে।</div><div class="pdf-q-container">`;
+    const optionMarkers = ['ক', 'খ', 'গ', 'ঘ'];
+    currentQuestions.forEach((q, index) => {
+        const options = [q.option1, q.option2, q.option3, q.option4].filter(opt => opt && String(opt).trim() !== '');
+        quizHTML += `<div class="pdf-q-block"><div style="font-weight:900;margin-bottom:14px;line-height:1.6;font-size:18px;text-align:justify;">${toBn(index + 1)}। ${q.question}`;
+        if (q.exam_tag) quizHTML += ` <span style="font-weight:900;font-size:14px;color:#000;border:1.5px solid #000;padding:3px 8px;border-radius:6px;display:inline-block;background:#f8f9fa;">${q.exam_tag}</span>`;
+        quizHTML += `</div><div class="pdf-options-grid">`;
+        options.forEach((opt, optIndex) => { const cleanOpt = String(opt).trim(); const sv = cleanOpt.replace(/"/g, '&quot;').replace(/'/g, '&#39;'); quizHTML += `<label class="pdf-option-label" data-qindex="${index}" data-value="${sv}" onclick="handleOptionClick(this)"><span class="pdf-circle">${optionMarkers[optIndex]||''}</span><span>${cleanOpt}</span></label>`; });
+        quizHTML += `</div></div>`;
+    });
+    quizHTML += `</div><div style="text-align:center;margin-top:40px;padding-top:20px;border-top:2px dashed #ccc;"><button class="btn" onclick="submitModelTest()" style="background:linear-gradient(135deg,#16a34a,#15803d);font-size:22px;padding:18px 50px;width:auto;border-radius:30px;font-weight:900;">✅ পরীক্ষা জমা দিন</button></div></div></div>`;
+    document.getElementById('quiz-container').innerHTML = quizHTML; window.scrollTo(0, 0);
+}
+
+function renderQuestion() {
+    document.getElementById('question-counter').style.display = 'block'; document.getElementById('timer').style.display = 'block';
+    const pb = document.querySelector('.progress-bar-container'); if(pb) pb.style.display = 'block';
+    document.getElementById('next-q-btn').style.display = 'inline-block';
+    const q = currentQuestions[currentQuestionIndex]; if (!q) return;
+    document.getElementById('feedback-container').innerHTML = ''; document.getElementById('next-q-btn').classList.add('hidden');
+    const prevBtn = document.getElementById('prev-q-btn'); if (prevBtn) prevBtn.style.display = 'none';
+    document.getElementById('question-counter').innerText = `প্রশ্ন: ${toBn(currentQuestionIndex + 1)}/${toBn(currentQuestions.length)}`;
+    document.getElementById('progress-bar').style.width = `${((currentQuestionIndex + 1) / currentQuestions.length) * 100}%`;
+    const options = [q.option1, q.option2, q.option3, q.option4].filter(opt => opt && String(opt).trim() !== '');
+    let quizHTML = `<div class="question-text" style="text-align:justify;line-height:1.6;">${toBn(currentQuestionIndex + 1)}. ${q.question}</div><div class="options-container">`;
+    options.forEach(opt => { const cleanOpt = String(opt).trim(); const sv = cleanOpt.replace(/"/g, '&quot;').replace(/'/g, '&#39;'); quizHTML += `<label class="option-label" data-value="${sv}" onclick="handleOptionClick(this)"><input type="radio" name="option" value="${sv}" style="display:none;"><span style="text-align:justify;">${cleanOpt}</span></label>`; });
+    document.getElementById('quiz-container').innerHTML = quizHTML + '</div>';
+    if (q.exam_tag) { const sourceEl = document.createElement('p'); sourceEl.className = 'q-source-tag'; sourceEl.innerText = `বিগত সালের প্রশ্ন: ${q.exam_tag}`; document.getElementById('quiz-container').appendChild(sourceEl); }
+}
+
+function handleOptionClick(element) {
+    if (element.classList.contains('disabled')) return;
+    const selectedValue = element.getAttribute('data-value');
+    if (isModelTestMode) {
+        const qIndex = element.getAttribute('data-qindex');
+        element.parentElement.querySelectorAll('.pdf-option-label').forEach(el => el.classList.remove('selected'));
+        element.classList.add('selected'); userAnswers[qIndex] = selectedValue;
+    } else {
+        const q = currentQuestions[currentQuestionIndex];
+        if (!userAnswers.hasOwnProperty(currentQuestionIndex)) {
+            userAnswers[currentQuestionIndex] = selectedValue;
+            if (selectedValue === q.answer) { earnedPoints += 1; correctCount++; } else { earnedPoints -= 0.5; wrongCount++; }
+        }
+        showAnswerResult(element, selectedValue, q);
+    }
+}
+function showAnswerResult(clickedEl, selectedValue, q) {
+    document.querySelectorAll('#exam-page .option-label').forEach(el => { el.classList.add('disabled'); if (el.getAttribute('data-value') === q.answer) el.classList.add('correct'); });
+    if (selectedValue !== q.answer) clickedEl.classList.add('wrong');
+    let feedbackHTML = (q.explanation && String(q.explanation).trim()) ? `<div class="feedback" style="border-left:4px solid var(--success-color);text-align:justify;"><p><strong>💡 সঠিক উত্তরের ব্যাখ্যা:</strong><br>${q.explanation}</p></div>` : '';
+    const wrongExps = [{o:q.option1,e:q.wrong_exp1},{o:q.option2,e:q.wrong_exp2},{o:q.option3,e:q.wrong_exp3},{o:q.option4,e:q.wrong_exp4}].filter(x=>x.o&&x.o!==q.answer&&x.e&&String(x.e).trim());
+    if (wrongExps.length > 0) feedbackHTML += `<div class="feedback" style="margin-top:10px;border-left:4px solid var(--danger-color);text-align:justify;"><p><strong>🤔 অন্যান্য অপশন কেন ভুল:</strong><br>${wrongExps.map(x=>`<strong>${x.o}:</strong> ${x.e}`).join('<br>')}</p></div>`;
+    document.getElementById('feedback-container').innerHTML = feedbackHTML;
+    document.getElementById('next-q-btn').classList.remove('hidden');
+}
+function startTimer(duration) {
+    let timer = duration; clearInterval(examTimer);
+    examTimer = setInterval(() => {
+        let minutes = parseInt(timer / 60, 10), seconds = parseInt(timer % 60, 10);
+        minutes = minutes < 10 ? "0" + minutes : minutes; seconds = seconds < 10 ? "0" + seconds : seconds;
+        const timeStr = `সময় বাকি: ${toBn(minutes)}:${toBn(seconds)}`;
+        if(isModelTestMode) { const pt = document.getElementById('pdf-timer-display'); if(pt) pt.textContent = timeStr; }
+        else { document.getElementById('timer').textContent = timeStr; }
+        if (--timer < 0) { clearInterval(examTimer); showModal('<h3>⏰ সময় শেষ!</h3><p style="font-size:18px;">স্বয়ংক্রিয়ভাবে খাতা জমা দেওয়া হচ্ছে।</p>', [{ text: "ফলাফল দেখুন", handler: isModelTestMode ? processModelTestResult : showResult }]); }
+    }, 1000);
+}
+document.getElementById('next-q-btn').onclick = function() { currentQuestionIndex++; if (currentQuestionIndex < currentQuestions.length) { renderQuestion(); } else { clearInterval(examTimer); showResult(); } };
+
+function submitModelTest() {
+    const answeredCount = Object.keys(userAnswers).length, totalQ = currentQuestions.length;
+    const warning = answeredCount < totalQ ? `<p style="color:red;font-size:18px;font-weight:900;">⚠️ আপনি <strong>${toBn(totalQ - answeredCount)}</strong> টি প্রশ্নের উত্তর দেননি।</p>` : "";
+    showModal(`<h3 style="font-size:24px;">পরীক্ষা জমা দিবেন?</h3>${warning}`, [{ text: "হ্যাঁ, জমা দিন", handler: processModelTestResult }, { text: "না, চেক করবো", class: "btn-danger" }]);
+}
+function processModelTestResult() {
+    clearInterval(examTimer); showLoading("মূল্যায়ন করা হচ্ছে...");
+    const vp = document.querySelector('meta[name="viewport"]'); if (vp) vp.setAttribute('content', 'width=device-width, initial-scale=1.0');
+    earnedPoints = 0; correctCount = 0; wrongCount = 0;
+    currentQuestions.forEach((q, index) => { const ua = userAnswers[index]; if (ua) { if (ua === q.answer) { earnedPoints += 1; correctCount++; } else { earnedPoints -= 0.5; wrongCount++; } } });
+    const ep = document.getElementById('exam-page'); ep.style.padding = '25px'; ep.style.maxWidth = '500px'; ep.style.backgroundColor = '#ffffff'; ep.style.boxShadow = '0 10px 30px rgba(0,0,0,0.08)';
+    setTimeout(showResult, 1000);
+}
+
+// =============================================
+// RESULT - SPLIT INTO TWO COLUMNS MANUALLY
+// Questions go TOP→BOTTOM in col1, then col2
+// =============================================
+function showResult() {
+    const user = JSON.parse(localStorage.getItem('currentUser'));
+    const userPhoto = user.photo || '';
+    const optionMarkers = ['ক', 'খ', 'গ', 'ঘ'];
+    const total = currentQuestions.length;
+
+    // Split questions into two halves: col1 = first half, col2 = second half
+    const half = Math.ceil(total / 2);
+    const col1Questions = currentQuestions.slice(0, half);
+    const col2Questions = currentQuestions.slice(half);
+
+    function buildQBlock(q, i) {
+        const userAnswer = userAnswers[i];
+        let html = `<div class="book-q-block">`;
+        html += `<div class="book-q-text">${toBn(i+1)}। ${q.question}`;
+        if(q.exam_tag) html += ` <span class="book-q-tag">${q.exam_tag}</span>`;
+        html += `</div>`;
+
+        if (!userAnswer) html += `<div class="unanswered-tag">উত্তর দেওয়া হয়নি</div>`;
+
+        const options = [q.option1, q.option2, q.option3, q.option4].filter(opt => opt && String(opt).trim() !== '');
+        html += `<div class="book-opt-grid">`;
+        options.forEach((opt, oi) => {
+            const marker = optionMarkers[oi] || '•';
+            let cls = '';
+            if (opt === q.answer) cls = 'opt-correct';
+            else if (opt === userAnswer) cls = 'opt-wrong';
+            html += `<div class="book-opt-item ${cls}"><div class="book-circle">${marker}</div><div>${opt}</div></div>`;
+        });
+        html += `</div>`;
+
+        let expsHTML = '';
+        if (q.explanation && String(q.explanation).trim()) {
+            expsHTML += `<div><span class="book-exp-title">💡 সঠিক উত্তর:</span> ${q.explanation}</div>`;
+        }
+        const wrongExps = [
+            {o:q.option1,e:q.wrong_exp1},{o:q.option2,e:q.wrong_exp2},
+            {o:q.option3,e:q.wrong_exp3},{o:q.option4,e:q.wrong_exp4}
+        ].filter(x => x.o && x.o !== q.answer && x.e && String(x.e).trim());
+        if (wrongExps.length > 0) {
+            expsHTML += `<div style="margin-top:6px;"><span class="book-exp-title">🤔 অন্য অপশন কেন ভুল:</span><ul class="wrong-exp-list">`;
+            wrongExps.forEach(x => { expsHTML += `<li><b>${x.o}:</b> ${x.e}</li>`; });
+            expsHTML += `</ul></div>`;
+        }
+        if (expsHTML) html += `<div class="book-exp-box">${expsHTML}</div>`;
+        html += `</div>`;
+        return html;
+    }
+
+    let col1HTML = '';
+    col1Questions.forEach((q, i) => { col1HTML += buildQBlock(q, i); });
+
+    let col2HTML = '';
+    col2Questions.forEach((q, i) => { col2HTML += buildQBlock(q, i + half); });
+
+    const topHeader = `
+    <div class="print-btn-wrapper no-print">
+        <button class="print-btn" onclick="downloadResult()">⬇️ PDF ডাউনলোড করুন</button>
+        <p style="font-size:15px;color:#64748b;margin-top:10px;font-weight:900;">ক্লিক করলে সরাসরি PDF সেভ হবে</p>
+    </div>
+    <div class="print-header-box">
+        <div class="print-header-top">
+            <div class="print-header-texts">
+                <h2 class="print-header-title">বাংলাদেশ সরকারী কর্ম কমিশন</h2>
+                <h2 class="print-header-title">পরীক্ষার প্রস্তুতি</h2>
+                <h3 class="print-header-sub">ফলাফল ও সমাধান পত্র</h3>
+            </div>
+            ${userPhoto ? `<img src="${userPhoto}" class="print-header-photo" alt="Student" onerror="this.style.display='none'">` : ''}
+        </div>
+        <div class="print-info-grid">
+            <div>🧑‍🎓 নাম: <strong>${user.name}</strong></div>
+            <div class="print-info-right">📚 বিষয়: <strong>${currentExamSubject}${isModelTestMode && currentSetLetter !== 'ডেমো' ? ' (সেট-' + currentSetLetter + ')' : ''}</strong></div>
+            <div>🎯 প্রাপ্ত নম্বর: <strong>${toBn(earnedPoints.toFixed(2))}</strong></div>
+            <div class="print-info-right">✅ সঠিক: <strong>${toBn(correctCount)}</strong> | ❌ ভুল: <strong>${toBn(wrongCount)}</strong></div>
+        </div>
+    </div>`;
+
+    const reviewHTML = topHeader + `
+    <div class="book-result-wrapper">
+        <div class="book-two-col-wrap">
+            <div class="book-col">${col1HTML}</div>
+            <div class="book-col">${col2HTML}</div>
+        </div>
+    </div>`;
+
+    document.getElementById('result-sheet').style.display = 'none';
+    document.getElementById('review-container').innerHTML = reviewHTML;
+    document.getElementById('review-container').style.columnCount = '1';
+    showPage('result-page');
+
+    fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: "submit_score", phone: user.phone, points: earnedPoints, subject: currentExamSubject, total_q: currentQuestions.length, correct: correctCount, wrong: wrongCount }) })
+    .then(res => res.json()).then(data => {
+        if (data.status === 'success') {
+            localStorage.setItem('currentUser', JSON.stringify(data.updatedUser));
+            if (data.newBadges && data.newBadges.length > 0) { showModal(`<h3>অভিনন্দন!</h3><p style="font-size:18px;">নতুন ব্যাজ: ${data.newBadges.map(b => BADGE_INFO[b].name).join(', ')}</p>`, [{ text: "দারুণ!" }]); }
+        }
+    });
+}
+
+// =============================================
+// PDF DOWNLOAD WITH PROPER MARGINS
+// =============================================
+async function downloadResult() {
+    const btn = document.querySelector('.print-btn');
+    if (btn) { btn.disabled = true; btn.innerHTML = '⏳ তৈরি হচ্ছে... একটু অপেক্ষা করুন'; }
+
+    try {
+        const { jsPDF } = window.jspdf;
+        const element = document.getElementById('printable-result');
+
+        const prevStyle = element.getAttribute('style') || '';
+        element.style.width = '1100px';
+        element.style.maxWidth = '1100px';
+        element.style.padding = '20px';
+
+        const noprints = element.querySelectorAll('.no-print');
+        noprints.forEach(el => el.style.display = 'none');
+
+        const canvas = await html2canvas(element, {
+            scale: 2,
+            useCORS: true,
+            allowTaint: true,
+            backgroundColor: '#ffffff',
+            logging: false,
+            windowWidth: 1100
+        });
+
+        element.setAttribute('style', prevStyle);
+        noprints.forEach(el => el.style.display = '');
+
+        const imgData = canvas.toDataURL('image/jpeg', 0.95);
+        const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+        const margin = 12;
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        const pageHeight = pdf.internal.pageSize.getHeight();
+        const contentWidth = pageWidth - (margin * 2);
+        const imgHeight = (canvas.height * contentWidth) / canvas.width;
+
+        let heightLeft = imgHeight;
+        let position = margin;
+
+        pdf.addImage(imgData, 'JPEG', margin, position, contentWidth, imgHeight);
+        heightLeft -= (pageHeight - margin * 2);
+
+        while (heightLeft > 0) {
+            position = heightLeft - imgHeight + margin;
+            pdf.addPage();
+            pdf.addImage(imgData, 'JPEG', margin, position, contentWidth, imgHeight);
+            heightLeft -= (pageHeight - margin * 2);
+        }
+
+        const user = JSON.parse(localStorage.getItem('currentUser'));
+        const filename = `BPSC_Result_${user.name}_${new Date().toLocaleDateString('en-BD')}.pdf`;
+        pdf.save(filename);
+
+    } catch (err) {
+        console.error('PDF error:', err);
+        alert('PDF তৈরিতে সমস্যা হয়েছে। আবার চেষ্টা করুন।');
+    }
+
+    if (btn) { btn.disabled = false; btn.innerHTML = '⬇️ PDF ডাউনলোড করুন'; }
+}
+
+function backToDashboard() {
+    const user = JSON.parse(localStorage.getItem('currentUser'));
+    routeUser(user);
+    document.getElementById('result-sheet').style.display = 'block';
+}
+
+// =============================================
+// SYLLABUS PAGE
+// =============================================
+function showSyllabusPage(subjectId) {
+    showLoading("অপেক্ষা করুন...");
+    setTimeout(() => {
+        closeModal();
+        const data = {
+            'Questions_Nursing':{title:'নার্সিং এন্ড মিডওয়াইফারি',icon:'🩺',color:'#0d9488',gradient:'linear-gradient(135deg,#0d9488,#0f766e)',marks:40,topics:['অ্যানাটমি ও ফিজিওলজি','নার্সিং এর মৌলিক বিষয়','রোগীর অত্যাবশ্যক লক্ষণ','মেডিকেল পরিভাষা ও ল্যাব মান','মাইক্রোবায়োলজি','বায়ো-মেডিকেল বর্জ্য','প্রাথমিক চিকিৎসা','নার্সিং নৈতিকতা','মেডিকেল-সার্জিক্যাল (শ্বাস)','মেডিকেল-সার্জিক্যাল (হৃদরোগ)','মেডিকেল-সার্জিক্যাল (পরিপাক)','এন্ডোক্রাইন সিস্টেম','অর্থোপেডিক নার্সিং','নিউরোলজি','ক্যান্সার নার্সিং','ফার্মাকোলজি','মিডওয়াইফারি: প্রসবপূর্ব','মিডওয়াইফারি: প্রসব ও পরবর্তী','ঝুঁকিপূর্ণ গর্ভাবস্থা','শিশু নার্সিং','পুষ্টি বিজ্ঞান','কমিউনিটি হেলথ','স্বাস্থ্য দিবস','সাইকিয়াট্রিক নার্সিং','নার্সিং ম্যানেজমেন্ট','গবেষণা ও পরিসংখ্যান','তথ্য প্রযুক্তি']},
+            'Questions_Bangla':{title:'বাংলা',icon:'📕',color:'#dc2626',gradient:'linear-gradient(135deg,#dc2626,#b91c1c)',marks:20,topics:['ভাষা, বর্ণ ও ধ্বনি','শব্দ ও পদ প্রকরণ','লিঙ্গ ও বচন','ণত্ব ও ষত্ব বিধান','সন্ধি','প্রকৃতি ও প্রত্যয়','উপসর্গ ও অনুসর্গ','কারক ও বিভক্তি','সমাস','শুদ্ধিকরণ','সমার্থক শব্দ','বিপরীতার্থক শব্দ','এক কথায় প্রকাশ','বাগধারা ও প্রবাদ','সাহিত্য: প্রাচীন ও মধ্যযুগ','সাহিত্য: আধুনিক যুগ']},
+            'Questions_English':{title:'ইংরেজি',icon:'📘',color:'#2563eb',gradient:'linear-gradient(135deg,#2563eb,#1d4ed8)',marks:20,topics:['Parts of Speech','Number and Article','Degree and Tense','Sentence Structure','Right forms of Verbs','Subject-Verb Agreement','Conditional Sentences','Transformation','Voice Change','Narration','Preposition','Error Correction','Phrasal Verbs','Spelling','Synonyms/Antonyms','One Word Substitution','Idioms','Translation']},
+            'Questions_GK':{title:'সাধারণ জ্ঞান',icon:'🌍',color:'#7c3aed',gradient:'linear-gradient(135deg,#7c3aed,#6d28d9)',marks:20,topics:['সাম্প্রতিক বাংলাদেশ','ইতিহাস ও মুক্তিযুদ্ধ','সংবিধান ও সরকার','ভূগোল ও নদ-নদী','অর্থনীতি ও প্রকল্প','জাতীয় দিবস','স্বাস্থ্যখাত','মানবদেহ ও রোগ','বিজ্ঞান','জাতিসংঘ ও WHO','SDG','আন্তর্জাতিক সংগঠন','কম্পিউটার ও আইটি']}
+        }[subjectId];
+        if (!data) return;
+        const topicsHTML = data.topics.map((t, i) => `<div class="sv3-topic-item"><div class="sv3-topic-num" style="background:${data.color};">${toBn(i+1)}</div><span class="sv3-topic-text" style="font-size:16px;">${t}</span></div>`).join('');
+        const html = `<div class="sv3-hero" style="background:${data.gradient};"><button class="sv3-back" onclick="showPage('student-dashboard')">← ফিরে যান</button><h2>${data.icon} ${data.title}</h2><p style="font-size:18px;">BPSC পরীক্ষার সম্পূর্ণ সিলেবাস</p><div class="sv3-mark-badge" style="font-size:16px;">মোট নম্বর: ${toBn(data.marks)}</div></div><div class="sv3-q-section"><span class="sv3-q-label" style="font-size:18px;">📝 কতটি প্রশ্নের পরীক্ষা দিতে চান?</span><div class="sv3-chips"><button class="sv3-chip" onclick="sv3SetCount(5,'${subjectId}','${data.color}')">৫</button><button class="sv3-chip sv3-sel" style="background:${data.color};" onclick="sv3SetCount(10,'${subjectId}','${data.color}')">১০ ✓</button><button class="sv3-chip" onclick="sv3SetCount(15,'${subjectId}','${data.color}')">১৫</button><button class="sv3-chip" onclick="sv3SetCount(20,'${subjectId}','${data.color}')">২০</button><button class="sv3-chip" onclick="sv3SetCount(25,'${subjectId}','${data.color}')">২৫</button><button class="sv3-chip" onclick="sv3SetCount(30,'${subjectId}','${data.color}')">৩০</button></div><input type="number" class="sv3-q-input" id="sv3-input-${subjectId}" value="10" min="5" max="30" oninput="sv3UpdateHint(this.value,'${subjectId}')"><div class="sv3-hint" id="sv3-hint-${subjectId}" style="font-size:16px;font-weight:bold;">✅ ১০টি প্রশ্নের পরীক্ষা হবে</div><button class="sv3-start-btn" style="background:${data.gradient};font-size:18px;" onclick="sv3StartExam('${subjectId}','${data.title}')">▶ পরীক্ষা শুরু করুন</button></div><div class="sv3-topics-wrap"><div class="sv3-section-title" style="font-size:20px;">এই বিষয়গুলো থেকে প্রশ্ন আসে</div>${topicsHTML}</div>`;
+        document.getElementById('syllabus-page').innerHTML = html;
+        showPage('syllabus-page');
+    }, 400);
+}
+function sv3SetCount(n, subjectId, color) { const input = document.getElementById('sv3-input-'+subjectId); if(input) input.value=n; document.querySelectorAll('#syllabus-page .sv3-chip').forEach(c=>{const val=c.onclick.toString().match(/sv3SetCount\((\d+)/);const isThis=val&&parseInt(val[1])===n;c.classList.toggle('sv3-sel',isThis);c.style.background=isThis?color:'';c.textContent=toBn(val?val[1]:'0')+(isThis?' ✓':'');}); sv3UpdateHint(n,subjectId); }
+function sv3UpdateHint(val,subjectId){const hint=document.getElementById('sv3-hint-'+subjectId),input=document.getElementById('sv3-input-'+subjectId),v=parseInt(val);if(!hint||!input)return;input.classList.remove('sv3-err');hint.classList.remove('sv3-bad');if(isNaN(v)||v<5){hint.textContent='⚠️ সর্বনিম্ন ৫টি';hint.classList.add('sv3-bad');input.classList.add('sv3-err');}else if(v>30){hint.textContent='⚠️ সর্বোচ্চ ৩০টি';hint.classList.add('sv3-bad');input.classList.add('sv3-err');}else{hint.textContent=`✅ ${toBn(v)}টি প্রশ্নের পরীক্ষা হবে`;}}
+function sv3StartExam(subjectId,title){showLoading("অপেক্ষা করুন...");const input=document.getElementById('sv3-input-'+subjectId),count=parseInt(input?input.value:10);if(isNaN(count)||count<5||count>30){closeModal();return sv3UpdateHint(count,subjectId);}currentExamSubject=title;isModelTestMode=false;isDemoMode=false;loadQuestions("get_subject_questions",{subject:subjectId,count:count});}
+
+// =============================================
+// INIT
+// =============================================
+document.addEventListener('DOMContentLoaded', () => {
+    ['reg-name','reg-phone','reg-email','reg-password','reg-confirm-password'].forEach(id => {
+        const el = document.getElementById(id);
+        if(el) el.addEventListener('input', function(){ const err=this.parentElement.querySelector('.field-error-msg'); if(err) err.remove(); this.style.borderColor=''; this.style.backgroundColor=''; });
+    });
+    const user = JSON.parse(localStorage.getItem('currentUser'));
+    if (user) { routeUser(user); } else { enhanceHomePage(); showPage('home-page'); }
+});
+
+Object.assign(window, {
+    showPage, handleRegistration, handleLogin, handlePasswordReset, logout,
+    togglePermission, uploadCsvFile, downloadResult, backToDashboard,
+    showAboutModal, showContactModal, showPrivacyModal,
+    startSubjectExam, startModelTest, startDemoModelTest, endDemo, handleOptionClick,
+    sv3SetCount, sv3UpdateHint, sv3StartExam, submitModelTest
+});
+})();
+</script>
 </body>
 </html>
