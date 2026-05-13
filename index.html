@@ -1490,22 +1490,22 @@ const reviewStyles = `
 }
 .print-header-texts { flex-grow: 1; text-align: center; min-width: 0; }
 
-/* ✅ PDF / DESKTOP HEADER TEXTS - BIGGER FONT */
+/* ✅ PDF / DESKTOP HEADER TEXTS */
 .print-header-title {
-    font-size: 32px; /* অনেক বড় করা হয়েছে পিডিএফ এর জন্য */
+    font-size: 32px; 
     font-weight: 900; color: #0f172a;
     margin: 0 0 5px 0; line-height: 1.3;
     word-break: break-word;
 }
 .print-header-sub {
-    font-size: 22px; /* সাব-টাইটেলও বড় করা হয়েছে */
+    font-size: 22px; 
     font-weight: 900;
-    color: #334155; margin: 4px 0 0 0;
+    margin: 4px 0 0 0;
 }
 .print-header-photo {
-    width: 95px; height: 95px; border-radius: 8px;
+    width: 110px; height: 110px; border-radius: 8px; /* ছবি বড় করা হলো */
     border: 3px solid #1e293b; object-fit: cover;
-    flex-shrink: 0; margin-left: 12px;
+    flex-shrink: 0; margin-left: 15px;
 }
 
 .print-info-grid {
@@ -1638,14 +1638,14 @@ const reviewStyles = `
     font-size: 14px; color: #64748b; font-weight: 600; margin: 0;
 }
 
-/* ✅ MOBILE RESPONSIVE SIZES (Prevents breaking on phones) */
+/* MOBILE RESPONSIVE SIZES */
 @media (max-width: 700px) {
     .book-two-col-wrap { flex-direction: column; gap: 0; }
     .print-info-grid { grid-template-columns: 1fr; font-size: 14px; }
     .print-info-right { text-align: left; }
-    .print-header-title { font-size: 20px; } /* মোবাইলে সেভ রাখার জন্য ছোট */
-    .print-header-sub { font-size: 15px; } /* মোবাইলে সেভ রাখার জন্য ছোট */
-    .print-header-photo { width: 65px; height: 65px; }
+    .print-header-title { font-size: 20px; } 
+    .print-header-sub { font-size: 15px; } 
+    .print-header-photo { width: 80px; height: 80px; }
     .book-q-text { font-size: 14px; }
     .book-opt-item { font-size: 13px; }
 }
@@ -1817,9 +1817,19 @@ function displayStudentDashboard(user) {
     const badgesHTML = (user.badges ? user.badges.split(',') : []).map(b => BADGE_INFO[b] ? `<div class="enh-badge" title="${BADGE_INFO[b].description}">${BADGE_INFO[b].icon} ${BADGE_INFO[b].name}</div>` : '').join('') || `<p class="enh-no-badge">পরীক্ষা দিন এবং ব্যাজ অর্জন করুন! 🎯</p>`;
     let paymentCardHTML = '';
     if (!isPremium) { paymentCardHTML = `<div class="enh-section" style="background:linear-gradient(145deg,#1e1b4b 0%,#4f46e5 100%);color:white;position:relative;overflow:hidden;margin-top:20px;"><div class="enh-section-header"><h3 style="color:white;margin-bottom:5px;">⭐ প্রিমিয়াম সদস্য হোন</h3></div><p style="color:rgba(255,255,255,0.8);font-size:14px;margin:0 0 20px 0;">আনলিমিটেড পরীক্ষা, মডেল টেস্ট ও সকল সুবিধা পেতে এখনই আপগ্রেড করুন।</p><div style="background:rgba(255,255,255,0.1);border-radius:12px;padding:15px;margin-bottom:15px;text-align:center;"><div style="color:#fbbf24;font-size:28px;font-weight:900;margin:5px 0;">মাত্র ৳২৫০</div></div><div style="background:linear-gradient(135deg,#fbbf24,#f97316);border-radius:12px;padding:12px;text-align:center;margin-bottom:15px;"><div style="font-size:12px;color:#1c1c1c;margin-bottom:4px;font-weight:600;">বিকাশ/নগদ/রকেট Send Money করুন:</div><div style="font-size:20px;font-weight:800;color:#1c1c1c;letter-spacing:2px;">${PAYMENT_NUMBER}</div></div><a href="${ADMIN_WHATSAPP}?text=আমি%20প্রিমিয়াম%20হতে%20চাই।" target="_blank" style="display:flex;align-items:center;justify-content:center;gap:8px;background:linear-gradient(135deg,#25d366,#128c7e);color:white;padding:14px;border-radius:12px;text-decoration:none;font-weight:700;font-size:15px;">WhatsApp-এ Screenshot পাঠান</a></div>`; }
+    
+    // ✅ STUDENT DASHBOARD HEADER EDITS HERE
     dashboard.innerHTML = `<div class="enh-topbar"><div class="enh-topbar-logo">📚 BPSC প্রস্তুতি</div><button class="enh-logout-btn" onclick="logout()">🚪 লগআউট</button></div><div class="enh-profile-hero"><div class="enh-hero-blob1"></div><div class="enh-hero-blob2"></div><div class="enh-profile-body"><div class="enh-avatar-wrap"><img src="${photo}" class="enh-avatar" alt="Profile" onerror="this.src='https://via.placeholder.com/150'"><div class="enh-avatar-ring"></div></div><div class="enh-profile-info"><h2 class="enh-username">${name}</h2><p class="enh-email">📧 ${email}</p>${isPremium ? '<div class="enh-premium-badge">⭐ প্রিমিয়াম সদস্য</div>' : '<div class="enh-free-badge">🆓 ফ্রি সদস্য</div>'}</div></div><div class="enh-stats-row"><div class="enh-stat-card stat-points"><div class="enh-stat-top"><span class="enh-stat-icon-new">🏅</span><span class="enh-stat-tag">পয়েন্ট</span></div><div class="enh-stat-big">${points.toFixed(2)}</div></div><div class="enh-stat-card stat-exams"><div class="enh-stat-top"><span class="enh-stat-icon-new">📝</span><span class="enh-stat-tag">পরীক্ষা</span></div><div class="enh-stat-big">${exams}</div></div><div class="enh-stat-card stat-rank"><div class="enh-stat-top"><span class="enh-stat-icon-new">🏆</span><span class="enh-stat-tag">র‍্যাঙ্ক</span></div><div class="enh-stat-big">#<span id="enh-rank-display"><span class="enh-rank-loader"></span></span></div></div></div><div class="enh-progress-section"><div class="enh-progress-label"><span>লেভেল প্রগ্রেস</span><span>${progress}%</span></div><div class="enh-progress-track"><div class="enh-progress-fill" style="width:${progress}%"></div></div><p class="enh-progress-hint">৫০০ পয়েন্ট = সর্বোচ্চ লেভেল 🎯</p></div></div><div id="dashboard-content"></div>`;
+    
     const contentDiv = document.getElementById('dashboard-content');
-    contentDiv.innerHTML = `<div id="free-user-notice-container"></div><div class="enh-section"><div class="enh-section-header"><span class="enh-section-icon">🎖️</span><h3>আমার ব্যাজ সংগ্রহ</h3></div><div class="enh-badges-wrap">${badgesHTML}</div></div><div class="enh-section"><div class="enh-section-header"><span class="enh-section-icon">📖</span><h3>বিষয়ভিত্তিক পরীক্ষা</h3></div><div class="enh-subject-grid"><button class="enh-subject-btn sub-nursing" onclick="startSubjectExam('Questions_Nursing')"><span class="sub-icon">🩺</span><span class="sub-name">নার্সিং এন্ড মিডওয়াইফারি</span><span class="sub-arrow">›</span></button><button class="enh-subject-btn sub-bangla" onclick="startSubjectExam('Questions_Bangla')"><span class="sub-icon">📕</span><span class="sub-name">বাংলা</span><span class="sub-arrow">›</span></button><button class="enh-subject-btn sub-english" onclick="startSubjectExam('Questions_English')"><span class="sub-icon">📘</span><span class="sub-name">ইংরেজি</span><span class="sub-arrow">›</span></button><button class="enh-subject-btn sub-gk" onclick="startSubjectExam('Questions_GK')"><span class="sub-icon">🌍</span><span class="sub-name">সাধারণ জ্ঞান</span><span class="sub-arrow">›</span></button></div></div><div class="enh-section"><div class="enh-section-header"><span class="enh-section-icon">🎯</span><h3>BPSC মডেল টেস্ট</h3></div><div class="enh-model-test-card" onclick="startModelTest()"><div class="enh-model-left"><div class="enh-model-icon">📋</div><div><h4>ফুল মডেল টেস্ট</h4><p>৫০টি প্রশ্ন • ৩০ মিনিট • নেগেটিভ মার্কিং</p></div></div><div class="enh-start-arrow">▶</div></div><button class="btn" onclick="startDemoModelTest()" style="margin-top:12px;background:linear-gradient(135deg,#8b5cf6,#6366f1);padding:12px;border-radius:12px;">👀 ডেমো দেখুন (ফ্রি)</button></div><div class="enh-section"><div class="enh-section-header"><span class="enh-section-icon">📊</span><h3>পারফরম্যান্স গ্রাফ</h3></div><div class="enh-chart-wrap"><canvas id="performanceChart"></canvas></div></div><div class="enh-section enh-dark-section"><div class="enh-section-header"><span class="enh-section-icon">🏆</span><h3 style="color:white;">লিডারবোর্ড (সেরা ১০)</h3><span class="enh-live-dot"><span class="pulse-dot"></span>LIVE</span></div><div id="student-leaderboard" class="enh-leaderboard-wrap"></div></div>${paymentCardHTML}`;
+    contentDiv.innerHTML = `<div id="free-user-notice-container"></div><div class="enh-section"><div class="enh-section-header"><span class="enh-section-icon">🎖️</span><h3>আমার ব্যাজ সংগ্রহ</h3></div><div class="enh-badges-wrap">${badgesHTML}</div></div><div class="enh-section">
+    <div class="enh-section-header" style="flex-wrap: wrap; margin-bottom: 12px;">
+        <div style="display:flex;align-items:center;gap:10px;width:100%;">
+            <span class="enh-section-icon">📖</span><h3 style="margin:0;">বিষয়ভিত্তিক পড়াশুনা ও পরীক্ষা</h3>
+        </div>
+        <div style="width:100%;padding-left:38px;font-size:13px;color:#475569;font-weight:600;margin-top:4px;">সঠিক ও ভুল উত্তরের বিস্তারিত ব্যাখ্যাসহ</div>
+    </div>
+    <div class="enh-subject-grid"><button class="enh-subject-btn sub-nursing" onclick="startSubjectExam('Questions_Nursing')"><span class="sub-icon">🩺</span><span class="sub-name">নার্সিং এন্ড মিডওয়াইফারি</span><span class="sub-arrow">›</span></button><button class="enh-subject-btn sub-bangla" onclick="startSubjectExam('Questions_Bangla')"><span class="sub-icon">📕</span><span class="sub-name">বাংলা</span><span class="sub-arrow">›</span></button><button class="enh-subject-btn sub-english" onclick="startSubjectExam('Questions_English')"><span class="sub-icon">📘</span><span class="sub-name">ইংরেজি</span><span class="sub-arrow">›</span></button><button class="enh-subject-btn sub-gk" onclick="startSubjectExam('Questions_GK')"><span class="sub-icon">🌍</span><span class="sub-name">সাধারণ জ্ঞান</span><span class="sub-arrow">›</span></button></div></div><div class="enh-section"><div class="enh-section-header"><span class="enh-section-icon">🎯</span><h3>BPSC মডেল টেস্ট</h3></div><div class="enh-model-test-card" onclick="startModelTest()"><div class="enh-model-left"><div class="enh-model-icon">📋</div><div><h4>ফুল মডেল টেস্ট</h4><p>৫০টি প্রশ্ন • ৩০ মিনিট • নেগেটিভ মার্কিং</p></div></div><div class="enh-start-arrow">▶</div></div><button class="btn" onclick="startDemoModelTest()" style="margin-top:12px;background:linear-gradient(135deg,#8b5cf6,#6366f1);padding:12px;border-radius:12px;">👀 ডেমো দেখুন (ফ্রি)</button></div><div class="enh-section"><div class="enh-section-header"><span class="enh-section-icon">📊</span><h3>পারফরম্যান্স গ্রাফ</h3></div><div class="enh-chart-wrap"><canvas id="performanceChart"></canvas></div></div><div class="enh-section enh-dark-section"><div class="enh-section-header"><span class="enh-section-icon">🏆</span><h3 style="color:white;">লিডারবোর্ড (সেরা ১০)</h3><span class="enh-live-dot"><span class="pulse-dot"></span>LIVE</span></div><div id="student-leaderboard" class="enh-leaderboard-wrap"></div></div>${paymentCardHTML}`;
     showPage('student-dashboard');
     loadLeaderboard('student-leaderboard', user.phone);
     loadPerformanceData(user.phone);
@@ -1983,8 +1993,8 @@ function renderAllQuestionsForModelTest() {
     document.getElementById('question-counter').style.display = 'none'; document.getElementById('timer').style.display = 'none';
     if(!document.getElementById('pdf-custom-styles')) document.head.insertAdjacentHTML('beforeend', pdfStyles);
     
-    // ✅ MODEL TEST TITLE UPDATED HERE (Added "ও মিডওয়াইফ" and increased font size)
-    let quizHTML = `<div class="pdf-sticky-timer" id="pdf-timer-display">সময় বাকি: ৩০:০০</div><div class="pdf-exam-container"><div class="pdf-exam-wrapper"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;"><span style="font-weight:900;font-size:15px;">বিশেষ দ্রষ্টব্য: মডেল প্রস্তুতি প্রশ্ন</span><div style="border:2px solid #000;padding:4px 15px;font-weight:900;border-radius:4px;font-size:18px;">সেট-${currentSetLetter}</div></div><div style="text-align:center;margin-bottom:20px;"><h2 style="margin:0 0 10px 0;font-size:32px;font-weight:900;">বাংলাদেশ সরকারী কর্ম কমিশন সচিবালয়</h2><h3 style="margin:0 0 10px 0;font-size:20px;font-weight:900;">সিনিয়র স্টাফ নার্স ও মিডওয়াইফ / নন-ক্যাডার নিয়োগ পরীক্ষা — প্রস্তুতি মডেল প্রশ্ন</h3><p style="margin:0;font-weight:900;font-size:16px;">বিষয়: বাংলা, ইংরেজী, সাধারণ জ্ঞান, নার্সিং ও মিডওয়াইফারি।</p></div><div style="display:flex;justify-content:space-between;font-weight:900;font-size:18px;border-bottom:2px solid #000;padding-bottom:8px;margin-bottom:15px;"><span>পূর্ণমান: ৫০</span><span>সময়: ৩০ মিনিট</span></div><div class="pdf-instructions"><b>নির্দেশনাবলী:</b> প্রতিটি প্রশ্নের মান ১। প্রতিটি ভুল উত্তরের জন্য ০.৫০ নম্বর কাটা যাবে।</div><div class="pdf-q-container">`;
+    // ✅ সচিবালয় বাদ দেওয়া হয়েছে এবং "ও মিডওয়াইফ" যুক্ত করা হয়েছে 
+    let quizHTML = `<div class="pdf-sticky-timer" id="pdf-timer-display">সময় বাকি: ৩০:০০</div><div class="pdf-exam-container"><div class="pdf-exam-wrapper"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;"><span style="font-weight:900;font-size:15px;">বিশেষ দ্রষ্টব্য: মডেল প্রস্তুতি প্রশ্ন</span><div style="border:2px solid #000;padding:4px 15px;font-weight:900;border-radius:4px;font-size:18px;">সেট-${currentSetLetter}</div></div><div style="text-align:center;margin-bottom:20px;"><h2 style="margin:0 0 10px 0;font-size:32px;font-weight:900;">বাংলাদেশ সরকারী কর্ম কমিশন</h2><h3 style="margin:0 0 10px 0;font-size:20px;font-weight:900;">সিনিয়র স্টাফ নার্স ও মিডওয়াইফ / নন-ক্যাডার নিয়োগ পরীক্ষা — প্রস্তুতি মডেল প্রশ্ন</h3><p style="margin:0;font-weight:900;font-size:16px;">বিষয়: বাংলা, ইংরেজী, সাধারণ জ্ঞান, নার্সিং ও মিডওয়াইফারি।</p></div><div style="display:flex;justify-content:space-between;font-weight:900;font-size:18px;border-bottom:2px solid #000;padding-bottom:8px;margin-bottom:15px;"><span>পূর্ণমান: ৫০</span><span>সময়: ৩০ মিনিট</span></div><div class="pdf-instructions"><b>নির্দেশনাবলী:</b> প্রতিটি প্রশ্নের মান ১। প্রতিটি ভুল উত্তরের জন্য ০.৫০ নম্বর কাটা যাবে।</div><div class="pdf-q-container">`;
     const optionMarkers = ['ক', 'খ', 'গ', 'ঘ'];
     currentQuestions.forEach((q, index) => {
         const options = [q.option1, q.option2, q.option3, q.option4].filter(opt => opt && String(opt).trim() !== '');
@@ -2011,7 +2021,14 @@ function renderQuestion() {
     let quizHTML = `<div class="question-text" style="text-align:justify;line-height:1.6;">${toBn(currentQuestionIndex + 1)}. ${q.question}</div><div class="options-container">`;
     options.forEach(opt => { const cleanOpt = String(opt).trim(); const sv = cleanOpt.replace(/"/g, '&quot;').replace(/'/g, '&#39;'); quizHTML += `<label class="option-label" data-value="${sv}" onclick="handleOptionClick(this)"><input type="radio" name="option" value="${sv}" style="display:none;"><span style="text-align:justify;">${cleanOpt}</span></label>`; });
     document.getElementById('quiz-container').innerHTML = quizHTML + '</div>';
-    if (q.exam_tag) { const sourceEl = document.createElement('p'); sourceEl.className = 'q-source-tag'; sourceEl.innerText = `বিগত সালের প্রশ্ন: ${q.exam_tag}`; document.getElementById('quiz-container').appendChild(sourceEl); }
+    
+    // ✅ HIGHLIGHTED EXAM TAG IN LIVE EXAM
+    if (q.exam_tag) { 
+        const sourceEl = document.createElement('div'); 
+        sourceEl.style.marginTop = "15px";
+        sourceEl.innerHTML = `<span style="background:#1e293b; color:#fff; border:1px solid #000; padding:4px 10px; border-radius:12px; font-size:13px; font-weight:bold; display:inline-block; box-shadow:0 2px 4px rgba(0,0,0,0.2);">🏷️ বিগত সালের প্রশ্ন: ${q.exam_tag}</span>`; 
+        document.getElementById('quiz-container').appendChild(sourceEl); 
+    }
 }
 
 function handleOptionClick(element) {
@@ -2118,6 +2135,7 @@ function showResult() {
     let col2HTML = '';
     col2Questions.forEach((q, i) => { col2HTML += buildQBlock(q, i + half); });
 
+    // ✅ RED COLOR ADDED TO "ফলাফল ও সমাধান পত্র"
     const topHeader = `
     <div class="print-btn-wrapper no-print">
         <button class="print-btn" onclick="downloadResult()">⬇️ PDF ডাউনলোড করুন</button>
@@ -2128,7 +2146,7 @@ function showResult() {
             <div class="print-header-texts">
                 <h2 class="print-header-title">বাংলাদেশ সরকারী কর্ম কমিশন</h2>
                 <h2 class="print-header-title">পরীক্ষার প্রস্তুতি</h2>
-                <h3 class="print-header-sub">ফলাফল ও সমাধান পত্র</h3>
+                <h3 class="print-header-sub" style="color: #dc2626;">ফলাফল ও সমাধান পত্র</h3>
             </div>
             ${userPhoto ? `<img src="${userPhoto}" class="print-header-photo" alt="Student" onerror="this.style.display='none'">` : ''}
         </div>
